@@ -21,8 +21,10 @@ export function RegisterForm({ countries }: { countries: Country[] }) {
   const [values, setValues] = useState(EMPTY);
   // Un campo muestra su error al salir de él (touched), no mientras se escribe.
   const [touched, setTouched] = useState<Flags>({});
-  // Los errores del servidor (p. ej. usuario en uso) se ocultan en cuanto se edita ese campo.
-  const [editedSinceSubmit, setEditedSinceSubmit] = useState<Flags>({});
+  // Campos editados desde la última respuesta del servidor: su error de servidor (p. ej. usuario en uso) ya no aplica.
+  // Se guardan junto a la respuesta a la que corresponden, así se reinician solos cuando llega una respuesta nueva.
+  const [edited, setEdited] = useState<{ response: RegisterState; fields: Flags }>({ response: state, fields: {} });
+  const editedFields = edited.response === state ? edited.fields : {};
   const [passwordFocused, setPasswordFocused] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -39,13 +41,16 @@ export function RegisterForm({ countries }: { countries: Country[] }) {
   // Cubre campos vacíos (son obligatorios) y cualquier valor inválido, como una persona menor de edad.
   const isValid = Object.keys(validateAll(values, validation)).length === 0;
 
-  const errorFor = (field: RegisterField) =>
-    (touched[field] && validateField(field, values, validation)) ||
-    (!editedSinceSubmit[field] ? state.fieldErrors?.[field] : undefined);
+  // Mientras se envía, los errores del servidor son del intento anterior: no se muestran hasta tener la respuesta nueva.
+  const serverError = (field: RegisterField) => (pending || editedFields[field] ? undefined : state.fieldErrors?.[field]);
+  const errorFor = (field: RegisterField) => (touched[field] && validateField(field, values, validation)) || serverError(field);
 
   const change = (field: RegisterField) => (value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
-    setEditedSinceSubmit((current) => ({ ...current, [field]: true }));
+    setEdited((current) => ({
+      response: state,
+      fields: { ...(current.response === state ? current.fields : {}), [field]: true },
+    }));
   };
   const touch = (field: RegisterField) => () => setTouched((current) => ({ ...current, [field]: true }));
 
@@ -53,7 +58,6 @@ export function RegisterForm({ countries }: { countries: Country[] }) {
     event.preventDefault();
     // Defensa extra: con el botón deshabilitado no debería llegarse aquí con datos inválidos.
     if (!isValid) return setTouched(ALL_TOUCHED);
-    setEditedSinceSubmit({});
     const formData = new FormData(event.currentTarget);
     startTransition(() => formAction(formData));
   }
@@ -106,7 +110,7 @@ export function RegisterForm({ countries }: { countries: Country[] }) {
           aria-invalid={Boolean(errors.birthDate)} aria-describedby="birthDate-error" />
       </FormField>
 
-      {state.error && <p className="text-sm text-danger" role="alert">{state.error}</p>}
+      {!pending && state.error && <p className="text-sm text-danger" role="alert">{state.error}</p>}
 
       {/* Solo se habilita con todo lleno y válido; antes de hidratar (values vacíos) también queda deshabilitado. */}
       <Button type="submit" disabled={!isValid || pending} className="mt-2">

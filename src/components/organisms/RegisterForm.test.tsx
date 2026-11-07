@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, onTestFinished, test, vi } from "vitest";
 import type { RegisterState } from "@/app/registro/actions";
 import type { Country } from "@/lib/registration";
 import { RegisterForm } from "./RegisterForm";
@@ -256,6 +256,55 @@ describe("RegisterForm", () => {
     expect(await screen.findByText("Ese nombre de usuario ya está en uso. Prueba con otro.")).toBeInTheDocument();
     await user.type(field.username(), "x");
     expect(errorOf("username")).toBeEmptyDOMElement();
+  });
+
+  test("al reenviar no reaparece el error viejo de un campo que ya se corrigió", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm countries={COUNTRIES} />);
+    await fillValid(user);
+
+    // 1er envío: el servidor dice que el usuario ya existe.
+    register.mockResolvedValueOnce({ fieldErrors: { username: "Ese nombre de usuario ya está en uso. Prueba con otro." } });
+    await user.click(submit());
+    expect(await screen.findByText(/nombre de usuario ya está en uso/)).toBeInTheDocument();
+
+    // Se cambia el usuario por uno libre; el correo sigue siendo uno ya registrado.
+    await user.clear(field.username());
+    await user.type(field.username(), "segundo_usuario");
+    expect(errorOf("username")).toBeEmptyDOMElement();
+
+    // 2do envío: mientras el servidor responde, el error viejo del usuario no debe volver.
+    let respond!: (state: RegisterState) => void;
+    register.mockImplementationOnce(() => new Promise((resolve) => (respond = resolve)));
+    // Si un expect falla antes de responder, la acción quedaría pendiente y React enredaría las transiciones de los tests siguientes.
+    onTestFinished(() => respond?.({}));
+    await user.click(submit());
+    expect(screen.getByRole("button", { name: "Creando cuenta..." })).toBeDisabled();
+    expect(errorOf("username")).toBeEmptyDOMElement();
+
+    respond({ fieldErrors: { email: "Ya existe una cuenta con este correo." } });
+    expect(await screen.findByText("Ya existe una cuenta con este correo.")).toBeInTheDocument();
+    expect(errorOf("username")).toBeEmptyDOMElement();
+  });
+
+  test("mientras se envía no se muestran errores del intento anterior", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm countries={COUNTRIES} />);
+    await fillValid(user);
+
+    register.mockResolvedValueOnce({ error: "No pudimos crear tu cuenta. Intenta de nuevo." });
+    await user.click(submit());
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    let respond!: (state: RegisterState) => void;
+    register.mockImplementationOnce(() => new Promise((resolve) => (respond = resolve)));
+    // Si un expect falla antes de responder, la acción quedaría pendiente y React enredaría las transiciones de los tests siguientes.
+    onTestFinished(() => respond?.({}));
+    await user.click(submit());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    respond({ error: "No pudimos crear tu cuenta. Intenta de nuevo." });
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 
   test("muestra el error general del servidor", async () => {
