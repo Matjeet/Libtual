@@ -33,6 +33,23 @@
   --accent: var(--palette-4);
 }
 
+/*
+ * Modo oscuro (según el sistema operativo): misma paleta, roles invertidos.
+ *   background ← palette-5 oscurecido · surface ← palette-5 · texto ← tinte de palette-1
+ *   primary ← palette-1 con texto palette-5 · secondary y accent no cambian.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: color-mix(in oklab, var(--palette-5) 45%, black);
+    --foreground: color-mix(in oklab, var(--palette-1) 25%, white);
+    --surface: var(--palette-5);
+    --surface-foreground: var(--foreground);
+    --primary: var(--palette-1);
+    --primary-foreground: var(--palette-5);
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
