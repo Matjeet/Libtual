@@ -31,6 +31,17 @@ const field = {
 const submit = () => screen.getByRole("button", { name: "Crear cuenta" });
 const errorOf = (id: string) => document.getElementById(`${id}-error`)!;
 
+// Elige con el calendario el día 1 del mes actual, N años atrás (como lo haría un usuario).
+async function pickBirthDateWithCalendar(user: UserEvent, yearsBack: number) {
+  const today = new Date();
+  const year = today.getFullYear() - yearsBack;
+  const month = today.toLocaleDateString("es", { month: "long" });
+  await user.click(screen.getByRole("button", { name: "Elegir fecha de nacimiento" }));
+  const dialog = screen.getByRole("dialog");
+  await user.selectOptions(within(dialog).getByRole("combobox", { name: /año/i }), String(year));
+  await user.click(within(dialog).getByRole("button", { name: new RegExp(`\\b1 de ${month} de ${year}`, "i") }));
+}
+
 async function chooseCountry(user: UserEvent, name: string) {
   await user.click(field.country());
   await user.click(screen.getByRole("option", { name }));
@@ -82,6 +93,27 @@ describe("RegisterForm", () => {
     await user.clear(field.birthDate());
     await user.type(field.birthDate(), yearsAgo(18));
     expect(submit()).toBeEnabled();
+  });
+
+  test("elegir con el calendario una fecha de menor de edad muestra el error de inmediato, aun sin país", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm countries={COUNTRIES} />);
+    // La fecha es lo primero que se llena: todavía no hay país.
+    await pickBirthDateWithCalendar(user, 10);
+    expect(errorOf("birthDate")).toHaveTextContent("Debes tener al menos 18 años para registrarte.");
+    expect(field.birthDate()).toHaveAttribute("aria-invalid", "true");
+
+    // Al elegir el país, el mensaje usa la mayoría de edad de ese país.
+    await chooseCountry(user, "Honduras");
+    expect(errorOf("birthDate")).toHaveTextContent("Debes tener al menos 21 años, la mayoría de edad en Honduras.");
+    expect(submit()).toBeDisabled();
+  });
+
+  test("elegir con el calendario una fecha válida no muestra error", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm countries={COUNTRIES} />);
+    await pickBirthDateWithCalendar(user, 30);
+    expect(errorOf("birthDate")).toBeEmptyDOMElement();
   });
 
   test("el botón queda deshabilitado con cualquier campo inválido", async () => {
