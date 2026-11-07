@@ -13,7 +13,7 @@ const variantClasses: Record<ButtonVariant, string> = {
 
 // Exportado para dar estilo de botón a enlaces (<Link>) sin anidar elementos interactivos.
 export function buttonClasses(variant: ButtonVariant = "primary", className = "") {
-  return `inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${variantClasses[variant]} ${className}`;
+  return `inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${variantClasses[variant]} ${className}`;
 }
 
 export function Button({ variant = "primary", type = "button", className = "", ...props }: ButtonProps) {
