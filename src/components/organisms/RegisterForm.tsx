@@ -34,11 +34,13 @@ export function RegisterForm({ countries }: { countries: Country[] }) {
   }, []);
 
   const country = countries.find((item) => item.code === values.country);
+  // Si la fecha se llena antes que el país, ya se avisa con la edad mínima de los países habilitados.
+  const validation = { country, minAdultAge: Math.min(...countries.map((item) => item.adultAge)) };
   // Cubre campos vacíos (son obligatorios) y cualquier valor inválido, como una persona menor de edad.
-  const isValid = Object.keys(validateAll(values, country)).length === 0;
+  const isValid = Object.keys(validateAll(values, validation)).length === 0;
 
   const errorFor = (field: RegisterField) =>
-    (touched[field] && validateField(field, values, country)) ||
+    (touched[field] && validateField(field, values, validation)) ||
     (!editedSinceSubmit[field] ? state.fieldErrors?.[field] : undefined);
 
   const change = (field: RegisterField) => (value: string) => {

@@ -28,7 +28,7 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
     : { data: null };
   const country: Country | undefined = row ? { code: row.code, name: row.name, adultAge: row.adult_age } : undefined;
 
-  const fieldErrors = validateAll(values, country);
+  const fieldErrors = validateAll(values, { country });
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   const { data: available, error: rpcError } = await supabase.rpc("is_username_available", { p_username: values.username });

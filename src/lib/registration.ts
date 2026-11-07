@@ -24,11 +24,18 @@ function isRealDate(value: string) {
 }
 
 // "today" en YYYY-MM-DD (UTC por defecto, igual que la base de datos).
+export type ValidationOptions = {
+  country?: Country;
+  // Edad mínima a exigir mientras no se ha elegido país (la menor de los países habilitados).
+  minAdultAge?: number;
+  // YYYY-MM-DD en UTC, igual que current_date en la base de datos.
+  today?: string;
+};
+
 export function validateField(
   field: RegisterField,
   values: RegisterValues,
-  country?: Country,
-  today = new Date().toISOString().slice(0, 10),
+  { country, minAdultAge, today = new Date().toISOString().slice(0, 10) }: ValidationOptions = {},
 ): string | undefined {
   const value = field === "password" ? values.password : values[field].trim();
 
@@ -59,14 +66,17 @@ export function validateField(
       if (country && ageOn(value, today) < country.adultAge) {
         return `Debes tener al menos ${country.adultAge} años, la mayoría de edad en ${country.name}.`;
       }
+      if (!country && minAdultAge && ageOn(value, today) < minAdultAge) {
+        return `Debes tener al menos ${minAdultAge} años para registrarte.`;
+      }
       return;
   }
 }
 
-export function validateAll(values: RegisterValues, country?: Country, today?: string) {
+export function validateAll(values: RegisterValues, options?: ValidationOptions) {
   const errors: Partial<Record<RegisterField, string>> = {};
   for (const field of Object.keys(values) as RegisterField[]) {
-    const error = validateField(field, values, country, today);
+    const error = validateField(field, values, options);
     if (error) errors[field] = error;
   }
   return errors;
