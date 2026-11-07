@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useSyncExternalStore } from "react";
 import { register, type RegisterState } from "@/app/registro/actions";
 import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
@@ -9,8 +9,12 @@ import { FormField } from "@/components/molecules/FormField";
 
 export type Country = { code: string; name: string };
 
+const noopSubscribe = () => () => {};
+
 export function RegisterForm({ countries }: { countries: Country[] }) {
   const [state, formAction, pending] = useActionState<RegisterState, FormData>(register, {});
+  // Bloquea el envío nativo previo a la hidratación: en rutas con prerender parcial Next responde sin el shell y la página queda rota.
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const errors = state.fieldErrors ?? {};
   const values = state.values ?? {};
   // Remonta el formulario con cada respuesta para que tome los valores devueltos por la acción.
@@ -54,7 +58,7 @@ export function RegisterForm({ countries }: { countries: Country[] }) {
 
       {state.error && <p className="text-sm text-danger" role="alert">{state.error}</p>}
 
-      <Button type="submit" disabled={pending} className="mt-2">
+      <Button type="submit" disabled={!hydrated || pending} className="mt-2">
         {pending ? "Creando cuenta..." : "Crear cuenta"}
       </Button>
     </form>
