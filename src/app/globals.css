@@ -33,6 +33,8 @@
   --secondary: var(--palette-3);
   --secondary-foreground: var(--ink);
   --accent: var(--palette-4);
+  /* Fuera de la paleta de marca: mensajes de error y campos inválidos. */
+  --danger: #b42318;
 }
 
 /*
@@ -49,6 +51,7 @@
     --surface-foreground: var(--foreground);
     --primary: var(--palette-1);
     --primary-foreground: var(--ink);
+    --danger: #fda29b;
   }
 }
 
@@ -62,6 +65,7 @@
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
+  --color-danger: var(--danger);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
