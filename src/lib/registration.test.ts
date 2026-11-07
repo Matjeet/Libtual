@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { PASSWORD_RULES, validateAll, validateField, type Country, type RegisterValues } from "./registration.ts";
 
 const TODAY = "2026-11-07";
