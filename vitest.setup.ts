@@ -6,4 +6,5 @@ import { afterEach } from "vitest";
 afterEach(cleanup);
 
 // jsdom no implementa scrollIntoView (lo usa CountrySelect para mantener visible la opción activa).
-Element.prototype.scrollIntoView = () => {};
+// Los tests de servidor corren en entorno node, sin DOM.
+if (typeof Element !== "undefined") Element.prototype.scrollIntoView = () => {};
