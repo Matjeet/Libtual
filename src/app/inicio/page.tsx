@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { Skeleton } from "@/components/atoms/Skeleton";
 import { MainTemplate } from "@/components/templates/MainTemplate";
 import { createClient } from "@/lib/supabase/server";
 
@@ -9,10 +10,19 @@ export const metadata: Metadata = { title: "Inicio | Libtual" };
 export default function HomePage() {
   return (
     <MainTemplate>
-      <Suspense fallback={null}>
+      <Suspense fallback={<HomeSkeleton />}>
         <AuthenticatedHome />
       </Suspense>
     </MainTemplate>
+  );
+}
+
+function HomeSkeleton() {
+  return (
+    <div role="status" aria-busy="true">
+      <span className="sr-only">Cargando inicio</span>
+      <Skeleton className="h-10 w-40" />
+    </div>
   );
 }
 
