@@ -1,66 +1,54 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { ageOn } from "@/lib/age";
+import { validateAll, type Country, type RegisterField, type RegisterValues } from "@/lib/registration";
 import { createClient } from "@/lib/supabase/server";
-
-type Field = "email" | "password" | "username" | "country" | "birthDate";
 
 export type RegisterState = {
   error?: string;
   message?: string;
-  fieldErrors?: Partial<Record<Field, string>>;
-  // Para volver a llenar el formulario tras un error (nunca la contraseña).
-  values?: Partial<Record<Exclude<Field, "password">, string>>;
+  fieldErrors?: Partial<Record<RegisterField, string>>;
 };
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME = /^[A-Za-z0-9_]{3,20}$/;
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
-
 export async function register(_prev: RegisterState, formData: FormData): Promise<RegisterState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  const username = String(formData.get("username") ?? "").trim();
-  const country = String(formData.get("country") ?? "");
-  const birthDate = String(formData.get("birthDate") ?? "");
-  const values = { email, username, country, birthDate };
-
-  const fieldErrors: RegisterState["fieldErrors"] = {};
-  if (!EMAIL.test(email)) fieldErrors.email = "Ingresa un correo válido.";
-  if (password.length < 8 || password.length > 72) fieldErrors.password = "La contraseña debe tener entre 8 y 72 caracteres.";
-  if (!USERNAME.test(username)) fieldErrors.username = "Usa de 3 a 20 letras, números o guion bajo.";
-  if (!DATE.test(birthDate) || Number.isNaN(Date.parse(birthDate))) fieldErrors.birthDate = "Ingresa una fecha válida.";
+  const read = (key: RegisterField) => String(formData.get(key) ?? "");
+  const values: RegisterValues = {
+    email: read("email").trim().toLowerCase(),
+    password: read("password"),
+    username: read("username").trim(),
+    country: read("country"),
+    birthDate: read("birthDate"),
+  };
 
   const supabase = await createClient();
 
-  const { data: countryRow } = await supabase.from("countries").select("name, adult_age").eq("code", country).maybeSingle();
-  if (!countryRow) {
-    fieldErrors.country = "Selecciona un país de la lista.";
-  } else if (!fieldErrors.birthDate && ageOn(birthDate) < countryRow.adult_age) {
-    fieldErrors.birthDate = `Debes tener al menos ${countryRow.adult_age} años (mayoría de edad en ${countryRow.name}).`;
-  }
+  // El país y su mayoría de edad salen de la base de datos, nunca del cliente.
+  const { data: row } = values.country
+    ? await supabase.from("countries").select("code, name, adult_age").eq("code", values.country).maybeSingle()
+    : { data: null };
+  const country: Country | undefined = row ? { code: row.code, name: row.name, adultAge: row.adult_age } : undefined;
 
-  if (Object.keys(fieldErrors).length > 0) return { fieldErrors, values };
+  const fieldErrors = validateAll(values, country);
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
-  const { data: available, error: rpcError } = await supabase.rpc("is_username_available", { p_username: username });
-  if (rpcError) return { error: "No pudimos crear tu cuenta. Intenta de nuevo.", values };
-  if (!available) return { fieldErrors: { username: "Ese nombre de usuario ya está en uso." }, values };
+  const { data: available, error: rpcError } = await supabase.rpc("is_username_available", { p_username: values.username });
+  if (rpcError) return { error: "No pudimos crear tu cuenta. Intenta de nuevo." };
+  if (!available) return { fieldErrors: { username: "Ese nombre de usuario ya está en uso. Prueba con otro." } };
 
   const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { username, country, birth_date: birthDate } },
+    email: values.email,
+    password: values.password,
+    options: { data: { username: values.username, country: values.country, birth_date: values.birthDate } },
   });
 
   if (error) {
     if (error.code === "user_already_exists" || error.code === "email_exists") {
-      return { fieldErrors: { email: "Ya existe una cuenta con este correo." }, values };
+      return { fieldErrors: { email: "Ya existe una cuenta con este correo." } };
     }
     if (error.code === "weak_password") {
-      return { fieldErrors: { password: "La contraseña es demasiado débil." }, values };
+      return { fieldErrors: { password: "La contraseña es demasiado débil. Prueba con una diferente." } };
     }
-    return { error: "No pudimos crear tu cuenta. Intenta de nuevo.", values };
+    return { error: "No pudimos crear tu cuenta. Intenta de nuevo." };
   }
 
   // Sin sesión significa que Supabase exige confirmar el correo antes de iniciar sesión.
