@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { RegisterForm, type Country } from "@/components/organisms/RegisterForm";
+import { RegisterFormSkeleton } from "@/components/organisms/RegisterFormSkeleton";
 import { MainTemplate } from "@/components/templates/MainTemplate";
 import { createClient } from "@/lib/supabase/server";
 
@@ -11,7 +12,7 @@ export default function RegisterPage() {
     <MainTemplate>
       <section className="flex flex-col items-center gap-6">
         <h1 className="text-3xl font-semibold tracking-tight">Crea tu cuenta</h1>
-        <Suspense fallback={<p>Cargando...</p>}>
+        <Suspense fallback={<RegisterFormSkeleton />}>
           <RegisterSection />
         </Suspense>
       </section>
