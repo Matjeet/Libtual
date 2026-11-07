@@ -59,17 +59,10 @@ export function RegisterForm({ countries }: { countries: Country[] }) {
     return <p className="rounded-lg bg-surface p-4 text-surface-foreground" role="status">{state.message}</p>;
   }
 
-  const passwordError = errorFor("password");
-  const showPasswordRules = passwordFocused || values.password !== "";
   const errors = {
     email: errorFor("email"),
-    // Con la lista visible, el detalle ya está marcado en rojo ahí; el mensaje solo remite a ella.
-    // Mientras se escribe, la lista da el feedback en vivo; el error aparece al salir del campo.
-    password: passwordFocused
-      ? undefined
-      : passwordError && showPasswordRules && touched.password
-        ? "La contraseña no cumple los requisitos marcados en rojo."
-        : passwordError,
+    // Dentro del campo, la lista de requisitos da el feedback en vivo; al salir, el error detalla lo que falta.
+    password: passwordFocused ? undefined : errorFor("password"),
     username: errorFor("username"),
     country: errorFor("country"),
     birthDate: errorFor("birthDate"),
@@ -88,10 +81,8 @@ export function RegisterForm({ countries }: { countries: Country[] }) {
           onChange={(event) => change("password")(event.target.value)}
           onFocus={() => setPasswordFocused(true)}
           onBlur={() => { setPasswordFocused(false); touch("password")(); }}
-          aria-invalid={Boolean(errors.password)} aria-describedby="password-rules password-error" />
-        {showPasswordRules && (
-          <PasswordRules id="password-rules" password={values.password} showErrors={Boolean(touched.password && !passwordFocused)} />
-        )}
+          aria-invalid={Boolean(errors.password)} aria-describedby={passwordFocused ? "password-rules password-error" : "password-error"} />
+        {passwordFocused && <PasswordRules id="password-rules" password={values.password} />}
       </FormField>
 
       <FormField id="username" label="Nombre de usuario" error={errors.username}>

@@ -100,16 +100,35 @@ describe("RegisterForm", () => {
     expect(errorOf("username")).toHaveTextContent("El nombre de usuario es obligatorio.");
   });
 
-  test("al salir de una contraseña incompleta marca en rojo lo que falta", async () => {
+  test("la lista de requisitos solo se ve con el foco en la contraseña", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm countries={COUNTRIES} />);
+    const rules = () => screen.queryByRole("list", { name: "Requisitos de la contraseña" });
+
+    await user.type(field.password(), "Clave#2026");
+    expect(rules()).toBeInTheDocument();
+
+    await user.tab();
+    expect(rules()).not.toBeInTheDocument();
+    expect(errorOf("password")).toBeEmptyDOMElement();
+
+    await user.click(field.password());
+    expect(rules()).toBeInTheDocument();
+  });
+
+  test("al salir de una contraseña incompleta, el error detalla lo que falta", async () => {
     const user = userEvent.setup();
     render(<RegisterForm countries={COUNTRIES} />);
     await user.type(field.password(), "clave20");
-    await user.tab();
+    // Mientras se escribe no hay error, solo la lista.
+    expect(errorOf("password")).toBeEmptyDOMElement();
 
-    expect(errorOf("password")).toHaveTextContent("La contraseña no cumple los requisitos marcados en rojo.");
-    const rules = screen.getByRole("list", { name: "Requisitos de la contraseña" });
-    expect(within(rules).getByText(/mayúscula/).closest("li")).toHaveClass("text-danger");
-    expect(within(rules).getByText(/número/).closest("li")).toHaveClass("text-success");
+    await user.tab();
+    expect(screen.queryByRole("list", { name: "Requisitos de la contraseña" })).not.toBeInTheDocument();
+    expect(errorOf("password")).toHaveTextContent(
+      "A la contraseña le falta: entre 8 y 20 caracteres, al menos una letra mayúscula, al menos un carácter especial",
+    );
+    expect(field.password()).toHaveAttribute("aria-invalid", "true");
   });
 
   test("valida la mayoría de edad según el país y se recalcula al cambiarlo", async () => {
