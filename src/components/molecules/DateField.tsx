@@ -11,7 +11,8 @@ type DateFieldProps = Omit<ComponentProps<"input">, "type" | "value" | "defaultV
   // YYYY-MM-DD, igual que el valor del input nativo.
   value: string;
   onChange: (value: string) => void;
-  // Se llama cuando el foco sale del campo completo (input, botón y calendario).
+  // Se llama cuando el usuario termina con el campo: al salir de él (input, botón y calendario)
+  // o al elegir un día en el calendario, aunque el foco siga dentro (vuelve al botón).
   onBlur: () => void;
   calendarLabel: string;
 };
@@ -45,6 +46,8 @@ export function DateField({ id, value, onChange, onBlur, calendarLabel, classNam
     inputRef.current!.value = iso;
     onChange(iso);
     close();
+    // Elegir en el calendario completa el campo: el formulario puede mostrar su error de inmediato.
+    onBlur();
   }
 
   return (

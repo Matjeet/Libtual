@@ -80,6 +80,17 @@ describe("DateField", () => {
     days.forEach((day) => expect(day).toBeDisabled());
   });
 
+  test("elegir un día en el calendario cuenta como terminar el campo", async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn();
+    render(<Harness initial="1995-05-20" onBlur={onBlur} />);
+    await user.click(calendarButton());
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: /\b8 de mayo de 1995/i }));
+    // El foco vuelve al botón (sigue dentro del campo), pero el formulario ya debe poder validar.
+    expect(calendarButton()).toHaveFocus();
+    expect(onBlur).toHaveBeenCalledOnce();
+  });
+
   test("Escape cierra el calendario sin cambiar el valor", async () => {
     const user = userEvent.setup();
     render(<Harness initial="1995-05-20" />);
