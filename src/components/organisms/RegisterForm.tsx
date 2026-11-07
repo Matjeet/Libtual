@@ -34,7 +34,8 @@ export function RegisterForm({ countries }: { countries: Country[] }) {
   }, []);
 
   const country = countries.find((item) => item.code === values.country);
-  const allFilled = Object.values(values).every((value) => value.trim() !== "");
+  // Cubre campos vacíos (son obligatorios) y cualquier valor inválido, como una persona menor de edad.
+  const isValid = Object.keys(validateAll(values, country)).length === 0;
 
   const errorFor = (field: RegisterField) =>
     (touched[field] && validateField(field, values, country)) ||
@@ -48,8 +49,8 @@ export function RegisterForm({ countries }: { countries: Country[] }) {
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setTouched(ALL_TOUCHED);
-    if (Object.keys(validateAll(values, country)).length > 0) return;
+    // Defensa extra: con el botón deshabilitado no debería llegarse aquí con datos inválidos.
+    if (!isValid) return setTouched(ALL_TOUCHED);
     setEditedSinceSubmit({});
     const formData = new FormData(event.currentTarget);
     startTransition(() => formAction(formData));
@@ -105,8 +106,8 @@ export function RegisterForm({ countries }: { countries: Country[] }) {
 
       {state.error && <p className="text-sm text-danger" role="alert">{state.error}</p>}
 
-      {/* Deshabilitado también antes de hidratar (values vacíos): evita el envío nativo sin JavaScript. */}
-      <Button type="submit" disabled={!allFilled || pending} className="mt-2">
+      {/* Solo se habilita con todo lleno y válido; antes de hidratar (values vacíos) también queda deshabilitado. */}
+      <Button type="submit" disabled={!isValid || pending} className="mt-2">
         {pending ? "Creando cuenta..." : "Crear cuenta"}
       </Button>
     </form>

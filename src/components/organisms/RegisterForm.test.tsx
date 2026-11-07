@@ -65,6 +65,36 @@ describe("RegisterForm", () => {
     expect(submit()).toBeEnabled();
   });
 
+  test("el botón sigue deshabilitado si la persona es menor de edad, aunque todo esté lleno", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm countries={COUNTRIES} />);
+    await user.type(field.email(), "ana@correo.com");
+    await user.type(field.password(), "Clave#2026");
+    await user.type(field.username(), "ana_23");
+    await chooseCountry(user, "Colombia");
+    await user.type(field.birthDate(), yearsAgo(17));
+    await user.tab();
+    await user.tab();
+    expect(errorOf("birthDate")).toHaveTextContent("Debes tener al menos 18 años");
+    expect(submit()).toBeDisabled();
+
+    // Cambiar a una fecha válida lo habilita.
+    await user.clear(field.birthDate());
+    await user.type(field.birthDate(), yearsAgo(18));
+    expect(submit()).toBeEnabled();
+  });
+
+  test("el botón queda deshabilitado con cualquier campo inválido", async () => {
+    const user = userEvent.setup();
+    render(<RegisterForm countries={COUNTRIES} />);
+    await fillValid(user);
+    expect(submit()).toBeEnabled();
+
+    await user.clear(field.email());
+    await user.type(field.email(), "ana@correo");
+    expect(submit()).toBeDisabled();
+  });
+
   test("la lista de requisitos aparece al entrar a la contraseña y se va marcando", async () => {
     const user = userEvent.setup();
     render(<RegisterForm countries={COUNTRIES} />);
@@ -146,7 +176,7 @@ describe("RegisterForm", () => {
     expect(errorOf("birthDate")).toBeEmptyDOMElement();
   });
 
-  test("con datos inválidos no llama al servidor y muestra todos los errores", async () => {
+  test("con datos inválidos no se puede enviar y cada campo muestra su error", async () => {
     const user = userEvent.setup();
     render(<RegisterForm countries={COUNTRIES} />);
     await user.type(field.email(), "no-es-correo");
@@ -154,8 +184,12 @@ describe("RegisterForm", () => {
     await user.type(field.username(), "a");
     await chooseCountry(user, "Colombia");
     await user.type(field.birthDate(), yearsAgo(10));
-    await user.click(submit());
+    // Enter en un campo intenta el envío implícito del formulario; con el botón deshabilitado no ocurre.
+    await user.keyboard("{Enter}");
+    await user.tab();
+    await user.tab();
 
+    expect(submit()).toBeDisabled();
     expect(register).not.toHaveBeenCalled();
     expect(errorOf("email")).not.toBeEmptyDOMElement();
     expect(errorOf("password")).not.toBeEmptyDOMElement();
