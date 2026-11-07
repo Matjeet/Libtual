@@ -5,11 +5,11 @@
  * Ordenados de más claro a más oscuro.
  */
 :root {
-  --palette-1: #cff27e;
-  --palette-2: #f2dd6e;
-  --palette-3: #e5b25d;
-  --palette-4: #b87d4b;
-  --palette-5: #523a34;
+  --palette-1: #faf3dd;
+  --palette-2: #c8d5b9;
+  --palette-3: #8fc0a9;
+  --palette-4: #68b0ab;
+  --palette-5: #696d7d;
 }
 
 /*
@@ -19,24 +19,26 @@
  *   ~20% surface     · header, tarjetas, paneles
  *   ~10% secondary   · botones secundarios, resaltados
  *   ~10% primary     · CTAs y texto (foreground)
- *   ~5%  accent      · bordes, divisores, detalles decorativos. No usar para texto: no alcanza contraste AA.
+ *   ~5%  accent      · divisores y detalles decorativos. No usar para texto ni bordes de controles: no alcanza contraste AA.
+ * ink: palette-5 oscurecido para que el texto pase AA (4.5:1) sobre cualquier color claro de la paleta.
  */
 :root {
+  --ink: color-mix(in oklab, var(--palette-5) 60%, black);
   --background: color-mix(in oklab, var(--palette-1) 20%, white);
-  --foreground: var(--palette-5);
+  --foreground: var(--ink);
   --surface: var(--palette-2);
-  --surface-foreground: var(--palette-5);
+  --surface-foreground: var(--ink);
   --primary: var(--palette-5);
   --primary-foreground: var(--palette-1);
   --secondary: var(--palette-3);
-  --secondary-foreground: var(--palette-5);
+  --secondary-foreground: var(--ink);
   --accent: var(--palette-4);
 }
 
 /*
  * Modo oscuro (según el sistema operativo): misma paleta, roles invertidos.
  *   background ← palette-5 oscurecido · surface ← palette-5 · texto ← tinte de palette-1
- *   primary ← palette-1 con texto palette-5 · secondary y accent no cambian.
+ *   primary ← palette-1 con texto ink · secondary y accent no cambian.
  */
 @media (prefers-color-scheme: dark) {
   :root {
@@ -46,7 +48,7 @@
     --surface: var(--palette-5);
     --surface-foreground: var(--foreground);
     --primary: var(--palette-1);
-    --primary-foreground: var(--palette-5);
+    --primary-foreground: var(--ink);
   }
 }
 
