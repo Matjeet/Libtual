@@ -5,6 +5,7 @@ import { register, type RegisterState } from "@/app/registro/actions";
 import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
 import { CountrySelect } from "@/components/molecules/CountrySelect";
+import { DateField } from "@/components/molecules/DateField";
 import { FormField } from "@/components/molecules/FormField";
 import { PasswordRules } from "@/components/molecules/PasswordRules";
 import { validateAll, validateField, type Country, type RegisterField, type RegisterValues } from "@/lib/registration";
@@ -106,8 +107,8 @@ export function RegisterForm({ countries }: { countries: Country[] }) {
       </FormField>
 
       <FormField id="birthDate" label="Fecha de nacimiento" error={errors.birthDate}>
-        <Input id="birthDate" name="birthDate" type="date" required
-          onChange={(event) => change("birthDate")(event.target.value)} onBlur={touch("birthDate")}
+        <DateField id="birthDate" name="birthDate" required calendarLabel="Elegir fecha de nacimiento"
+          value={values.birthDate} onChange={change("birthDate")} onBlur={touch("birthDate")}
           aria-invalid={Boolean(errors.birthDate)} aria-describedby="birthDate-error" />
       </FormField>
 

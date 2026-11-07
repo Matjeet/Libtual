@@ -117,6 +117,9 @@ describe("RegisterForm", () => {
     render(<RegisterForm countries={COUNTRIES} />);
     await chooseCountry(user, "Honduras");
     await user.type(field.birthDate(), yearsAgo(20));
+    // El primer Tab va al botón del calendario, que es parte del mismo campo; el segundo sale del campo.
+    await user.tab();
+    expect(errorOf("birthDate")).toBeEmptyDOMElement();
     await user.tab();
     expect(errorOf("birthDate")).toHaveTextContent("Debes tener al menos 21 años, la mayoría de edad en Honduras.");
 
