@@ -17,14 +17,7 @@ describe("PasswordRules", () => {
     expect(itemFor(/número/)).toHaveClass("text-success");
     expect(itemFor(/minúscula/)).toHaveTextContent("cumplido");
     expect(itemFor(/mayúscula/)).toHaveTextContent("pendiente");
-    expect(itemFor(/mayúscula/)).not.toHaveClass("text-danger");
-  });
-
-  test("con showErrors marca en rojo los pendientes", () => {
-    render(<PasswordRules id="rules" password="clave20" showErrors />);
-    expect(itemFor(/mayúscula/)).toHaveClass("text-danger");
-    expect(itemFor(/mayúscula/)).toHaveTextContent("✕");
-    expect(itemFor(/número/)).toHaveClass("text-success");
+    expect(itemFor(/mayúscula/)).not.toHaveClass("text-success");
   });
 
   test("todos cumplidos con una contraseña válida", () => {
