@@ -4,3 +4,6 @@ import { afterEach } from "vitest";
 
 // Sin globals de Vitest, Testing Library no limpia el DOM sola entre tests.
 afterEach(cleanup);
+
+// jsdom no implementa scrollIntoView (lo usa CountrySelect para mantener visible la opción activa).
+Element.prototype.scrollIntoView = () => {};
