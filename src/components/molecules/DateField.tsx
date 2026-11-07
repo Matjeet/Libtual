@@ -71,7 +71,7 @@ export function DateField({ id, value, onChange, onBlur, calendarLabel, classNam
         type="date"
         onChange={(event) => onChange(event.target.value)}
         // Oculta el ícono del calendario nativo (Chrome, Edge, Safari); Firefox no permite ocultarlo.
-        className={`pr-11 [&::-webkit-calendar-picker-indicator]:hidden ${className}`}
+        className={`pr-12 [&::-webkit-calendar-picker-indicator]:hidden ${className}`}
         {...inputProps}
       />
       <button
@@ -82,7 +82,7 @@ export function DateField({ id, value, onChange, onBlur, calendarLabel, classNam
         aria-expanded={open}
         aria-controls={dialogId}
         onClick={() => setOpen((current) => !current)}
-        className="absolute right-1 top-1 flex size-8 items-center justify-center rounded-md text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground"
+        className="absolute right-0 top-0 flex size-11 items-center justify-center rounded-lg text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground"
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="4.5" width="18" height="16" rx="2" />
@@ -95,7 +95,7 @@ export function DateField({ id, value, onChange, onBlur, calendarLabel, classNam
           id={dialogId}
           role="dialog"
           aria-label={calendarLabel}
-          className="calendar absolute right-0 z-20 mt-1 rounded-lg border border-foreground/20 bg-background p-3 text-foreground shadow-lg"
+          className="calendar absolute -inset-x-4 z-20 mt-1 rounded-lg border border-foreground/20 bg-background p-1 text-foreground shadow-lg sm:left-auto sm:right-0 sm:p-3"
         >
           <DayPicker
             mode="single"
