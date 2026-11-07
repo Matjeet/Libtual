@@ -33,6 +33,9 @@
   --secondary: var(--palette-3);
   --secondary-foreground: var(--ink);
   --accent: var(--palette-4);
+  /* Fuera de la paleta de marca: estados de validación (error y requisito cumplido). */
+  --danger: #b42318;
+  --success: #1a7f37;
 }
 
 /*
@@ -49,6 +52,8 @@
     --surface-foreground: var(--foreground);
     --primary: var(--palette-1);
     --primary-foreground: var(--ink);
+    --danger: #fda29b;
+    --success: #6fdd8b;
   }
 }
 
@@ -62,6 +67,8 @@
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -70,4 +77,42 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Calendario (DayPicker, usado en DateField): mismos tokens que el resto de la app. */
+.calendar .rdp-root {
+  --rdp-accent-color: var(--primary);
+  --rdp-accent-background-color: var(--surface);
+  --rdp-today-color: var(--foreground);
+  --rdp-day-height: 2.25rem;
+  --rdp-day-width: 2.25rem;
+  --rdp-day_button-height: 2.125rem;
+  --rdp-day_button-width: 2.125rem;
+  --rdp-nav-height: 2.5rem;
+  font-size: 0.875rem;
+}
+
+.calendar .rdp-today:not(.rdp-outside) {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.calendar .rdp-selected .rdp-day_button {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.calendar .rdp-day_button:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--surface-foreground);
+}
+
+.calendar .rdp-selected .rdp-day_button:hover {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.calendar .rdp-dropdown {
+  background: var(--background);
+  color: var(--foreground);
 }
