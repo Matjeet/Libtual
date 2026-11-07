@@ -1,22 +1,50 @@
 @import "tailwindcss";
 
+/*
+ * Paleta de marca: para cambiar los colores de la app, edita solo estos 5 valores.
+ * Ordenados de más claro a más oscuro.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --palette-1: #cff27e;
+  --palette-2: #f2dd6e;
+  --palette-3: #e5b25d;
+  --palette-4: #b87d4b;
+  --palette-5: #523a34;
+}
+
+/*
+ * Tokens semánticos: los componentes usan solo estos, nunca la paleta directa.
+ * Uso aproximado en pantalla (regla 60-30-10):
+ *   ~60% background  · fondo de página (tinte suave de palette-1)
+ *   ~20% surface     · header, tarjetas, paneles
+ *   ~10% secondary   · botones secundarios, resaltados
+ *   ~10% primary     · CTAs y texto (foreground)
+ *   ~5%  accent      · bordes, divisores, detalles decorativos. No usar para texto: no alcanza contraste AA.
+ */
+:root {
+  --background: color-mix(in oklab, var(--palette-1) 20%, white);
+  --foreground: var(--palette-5);
+  --surface: var(--palette-2);
+  --surface-foreground: var(--palette-5);
+  --primary: var(--palette-5);
+  --primary-foreground: var(--palette-1);
+  --secondary: var(--palette-3);
+  --secondary-foreground: var(--palette-5);
+  --accent: var(--palette-4);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
