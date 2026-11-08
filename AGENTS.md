@@ -17,3 +17,19 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - El skeleton se construye con el átomo `src/components/atoms/Skeleton.tsx` y replica las medidas del contenido real para que el layout no salte al terminar de cargar.
 - Si el skeleton es de un organismo, va en `src/components/organisms/<Nombre>Skeleton.tsx` (ver `RegisterFormSkeleton`).
 - Accesibilidad: el contenedor del skeleton lleva `role="status"`, `aria-busy="true"` y un texto `sr-only` que describa qué se está cargando.
+
+## Responsive: mobile-first
+
+- Los estilos se escriben **mobile-first**: las clases sin prefijo son para el celular más pequeño (320 px de ancho) y los prefijos de Tailwind (`sm:`, `md:`, `lg:`, `xl:`, `2xl:`) agregan o ajustan estilos a medida que la pantalla crece. No se escriben estilos pensados para escritorio que luego se "arreglan" para celular con `max-*:`.
+- Rango que debe funcionar: desde 320 px hasta pantallas de 1920 px o más.
+  - Nada se superpone ni se sale de la pantalla, y no aparece scroll horizontal.
+  - Ningún botón ni control queda oculto, recortado o inalcanzable en pantallas pequeñas; las áreas táctiles miden al menos 44 × 44 px.
+  - En pantallas grandes el contenido no queda como una franja angosta con mucho espacio vacío a los lados: los contenedores crecen con la pantalla y los formularios o textos de una sola columna se acompañan de un layout que use el espacio de forma equilibrada.
+- Los inputs usan al menos 16 px de tamaño de letra, para que iOS no haga zoom al enfocarlos.
+- Los elementos flotantes (listas desplegables, calendarios, menús) deben caber en la pantalla en todos los anchos.
+
+## Revisión de responsive con el agente `responsive-reviewer`
+
+- Cada vez que se modifiquen estilos de una página o de un componente que use una página, **especialmente de posición o tamaño** (márgenes, paddings, anchos, altos, flex/grid, posicionamiento, tamaños de letra), se ejecuta el agente `.claude/agents/responsive-reviewer.md`.
+- El agente solo revisa y reporta; no modifica archivos. Quien hizo el cambio corrige lo reportado y vuelve a pedir la revisión al mismo agente.
+- El ciclo se repite hasta que el agente responda **APROBADO**. Sin esa aprobación, el cambio de estilos no se da por terminado.

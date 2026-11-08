@@ -128,7 +128,7 @@ export function CountrySelect({
         onClick={() => !open && openList()}
         onKeyDown={onKeyDown}
         onBlur={leave}
-        className={`pr-10 ${showFlag ? "pl-11" : ""}`}
+        className={`pr-12 ${showFlag ? "pl-11" : ""}`}
       />
       <button
         type="button"
@@ -141,7 +141,7 @@ export function CountrySelect({
           if (open) setOpen(false);
           else openList();
         }}
-        className="absolute right-1 top-1 flex size-8 items-center justify-center rounded-md text-foreground"
+        className="absolute right-0 top-0 flex size-11 items-center justify-center rounded-lg text-foreground"
       >
         <svg aria-hidden="true" viewBox="0 0 20 20" className={`size-5 transition-transform ${open ? "rotate-180" : ""}`}>
           <path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />

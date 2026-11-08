@@ -8,11 +8,11 @@ export function RegisterFormSkeleton() {
       {Array.from({ length: 5 }, (_, i) => (
         <div key={i} className="flex flex-col gap-1.5">
           <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-11 w-full" />
           <div className="h-5" />
         </div>
       ))}
-      <Skeleton className="mt-2 h-10 w-full rounded-full" />
+      <Skeleton className="mt-2 h-11 w-full rounded-full" />
     </div>
   );
 }
