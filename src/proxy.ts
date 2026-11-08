@@ -29,9 +29,9 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!isAuthenticated && pathname.startsWith("/inicio")) {
-    return NextResponse.redirect(new URL("/registro", request.url));
+    return NextResponse.redirect(new URL("/ingresar", request.url));
   }
-  if (isAuthenticated && pathname.startsWith("/registro")) {
+  if (isAuthenticated && (pathname.startsWith("/registro") || pathname.startsWith("/ingresar"))) {
     return NextResponse.redirect(new URL("/inicio", request.url));
   }
 

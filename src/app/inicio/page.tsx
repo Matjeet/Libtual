@@ -30,7 +30,7 @@ function HomeSkeleton() {
 async function AuthenticatedHome() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
-  if (!data?.claims) redirect("/registro");
+  if (!data?.claims) redirect("/ingresar");
 
   return <h1 className="text-4xl font-semibold tracking-tight">INICIO</h1>;
 }
