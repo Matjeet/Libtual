@@ -5,7 +5,7 @@ import { MainTemplate } from "@/components/templates/MainTemplate";
 
 export default function Home() {
   return (
-    <MainTemplate>
+    <MainTemplate showSignIn>
       {/* Mobile-first: hero centrado; desde lg, texto a la izquierda y panel de marca a la derecha. */}
       <section className="flex flex-1 flex-col items-center justify-center gap-6 text-center lg:grid lg:grid-cols-2 lg:gap-16 lg:text-left">
         <div className="flex flex-col items-center gap-6 lg:items-start">
