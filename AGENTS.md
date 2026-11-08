@@ -24,8 +24,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Rango que debe funcionar: desde 320 px hasta pantallas de 1920 px o más.
   - Nada se superpone ni se sale de la pantalla, y no aparece scroll horizontal.
   - Ningún botón ni control queda oculto, recortado o inalcanzable en pantallas pequeñas; las áreas táctiles miden al menos 44 × 44 px.
-  - En pantallas grandes, los elementos que van **anclados a un borde** (el logo y las acciones del header, la navegación, títulos o botones alineados a un lado) se mantienen cerca de ese borde. No se encierran en un contenedor con un `max-w-*` tan chico que los aleje: los contenedores de ancho completo usan un padding lateral que crece con la pantalla. Como guía, desde 1024 px no quedan a más del 8 % del ancho de la pantalla de su borde (unos 150 px en 1920).
-  - El contenido que es naturalmente angosto (un formulario, un bloque de texto de lectura) puede quedar centrado con espacio alrededor. **No se agrega contenido solo para llenar espacio.**
+  - En pantallas grandes, los elementos que el diseño ubica **junto al borde de la pantalla** (el logo y las acciones del header, la navegación, barras o botones fijos a un lado) se mantienen cerca de ese borde. No se encierran en un contenedor con un `max-w-*` que los aleje: su contenedor de ancho completo usa un padding lateral que crece con la pantalla. Como guía, desde 1024 px no quedan a más del 8 % del ancho de la pantalla de su borde (unos 150 px en 1920).
+  - El contenido de la página (títulos, textos, formularios, paneles) vive en un contenedor centrado con ancho máximo (`MainTemplate`, `max-w-6xl`) y puede quedar centrado con espacio a los lados en pantallas grandes. **No se agrega contenido solo para llenar espacio.**
 - Los inputs usan al menos 16 px de tamaño de letra, para que iOS no haga zoom al enfocarlos.
 - Los elementos flotantes (listas desplegables, calendarios, menús) deben caber en la pantalla en todos los anchos.
 
