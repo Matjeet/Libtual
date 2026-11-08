@@ -4,7 +4,8 @@ import { MainTemplate } from "@/components/templates/MainTemplate";
 
 type AuthTemplateProps = {
   title: string;
-  brandDescription: string;
+  // Texto o contenido (por ejemplo, frases rotativas) bajo el nombre en el panel de marca.
+  brandDescription: ReactNode;
   // Lado del formulario desde lg; el panel de marca ocupa el otro.
   formSide: "left" | "right";
   children: ReactNode;
@@ -14,8 +15,8 @@ type AuthTemplateProps = {
 export function AuthTemplate({ title, brandDescription, formSide, children }: AuthTemplateProps) {
   return (
     <MainTemplate>
-      {/* Mobile-first: una columna; desde lg dos columnas con el panel de marca. */}
-      <section className="flex flex-col items-center gap-6 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16">
+      {/* Mobile-first: una columna; desde lg dos columnas con el panel de marca. my-auto centra el conjunto en el body. */}
+      <section className="my-auto flex flex-col items-center gap-6 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16">
         <BrandPanel
           className={`hidden lg:flex ${formSide === "left" ? "lg:order-last" : ""}`}
           title="Libtual"
