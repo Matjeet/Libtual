@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { buttonClasses } from "@/components/atoms/Button";
-import { OpenBook } from "@/components/molecules/OpenBook";
 import { RotatingText } from "@/components/molecules/RotatingText";
 import { BrandPanel } from "@/components/organisms/BrandPanel";
 import { MainTemplate } from "@/components/templates/MainTemplate";
@@ -32,7 +31,16 @@ export default function Home() {
         </div>
         <BrandPanel
           className="hidden lg:flex"
-          decoration={<OpenBook />}
+          decoration={
+            // Animación hecha con HyperFrames (design/open-book): un GIF por tema con el color del panel de fondo.
+            // Con movimiento reducido se muestra el primer cuadro fijo.
+            <picture>
+              <source media="(prefers-reduced-motion: reduce) and (prefers-color-scheme: dark)" srcSet="/animations/open-book-dark.png" />
+              <source media="(prefers-reduced-motion: reduce)" srcSet="/animations/open-book-light.png" />
+              <source media="(prefers-color-scheme: dark)" srcSet="/animations/open-book-dark.gif" />
+              <img src="/animations/open-book-light.gif" alt="" width={192} height={112} loading="lazy" className="block h-28 w-48" />
+            </picture>
+          }
           title="¡Empieza a armar tu librería!"
           description="Crea tu cuenta y llena tus estantes con tus libros favoritos."
         />
