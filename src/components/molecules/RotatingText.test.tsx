@@ -49,6 +49,17 @@ describe("RotatingText", () => {
     expect(leaving.className).toContain("motion-reduce:invisible");
   });
 
+  test("modo en línea y velocidad de animación configurable", () => {
+    const { container } = render(<RotatingText phrases={["o", "a"]} intervalMs={5_000} animationMs={300} inline />);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root).toHaveClass("inline-grid");
+    expect(root.style.getPropertyValue("--rotate-ms")).toBe("300ms");
+
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(stateOf(container, "a")).toBe("entering");
+    expect(stateOf(container, "o")).toBe("leaving");
+  });
+
   test("deja de cambiar al desmontarse", () => {
     const clear = vi.spyOn(globalThis, "clearInterval");
     const { unmount } = render(<RotatingText phrases={PHRASES} />);
