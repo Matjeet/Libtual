@@ -10,12 +10,19 @@ export default function Home() {
       <section className="flex flex-1 flex-col items-center justify-center gap-6 text-center lg:grid lg:grid-cols-2 lg:gap-16 lg:text-left">
         <div className="flex flex-col items-center gap-6 lg:items-start">
           <h1 className="text-4xl font-semibold tracking-tight md:text-5xl lg:text-6xl">Bienvenido a Libtual</h1>
-          <p className="max-w-md text-lg text-foreground/80 lg:max-w-xl lg:text-xl">Maqueta inicial del proyecto.</p>
+          <p className="max-w-md text-lg text-foreground/80 lg:max-w-xl lg:text-xl">
+            Libtual es tu librería virtual: guarda los libros que has leído, los que estás leyendo y los que quieres leer.
+            Comparte tu opinión y descubre tu próximo favorito en las librerías de otros lectores.
+          </p>
           <Link href="/registro" className={buttonClasses()}>
             Comenzar
           </Link>
         </div>
-        <BrandPanel className="hidden lg:flex" title="Libtual" description="Maqueta inicial del proyecto." />
+        <BrandPanel
+          className="hidden lg:flex"
+          title="Empieza a armar tu librería"
+          description="Crea tu cuenta y llena tus estantes con tus libros favoritos."
+        />
       </section>
     </MainTemplate>
   );
