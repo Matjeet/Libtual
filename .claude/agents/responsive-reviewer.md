@@ -95,8 +95,9 @@ Las páginas protegidas (como `/inicio`) exigen sesión. Si no puedes entrar, re
   // 6. Distancia a los bordes de la pantalla: cuánto se alejan del borde izquierdo y derecho
   //    los elementos visibles de cada zona (en px y en % del ancho). Sirve para detectar elementos
   //    anclados a un borde (logo, acciones del header, navegación) que quedan muy lejos de él.
+  // Solo elementos de contenido: los contenedores de ancho completo darían siempre 0 px.
   const edges = (root) => {
-    const els = root ? [...root.querySelectorAll("*")].filter(visible) : [];
+    const els = root ? [...root.querySelectorAll("a, button, input:not([type=hidden]), select, textarea, img, svg, h1, h2, h3, p, label, li, [role=combobox]")].filter(visible) : [];
     if (!els.length) return null;
     const left = Math.min(...els.map((e) => e.getBoundingClientRect().left));
     const right = vw - Math.max(...els.map((e) => e.getBoundingClientRect().right));
