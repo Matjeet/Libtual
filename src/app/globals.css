@@ -131,6 +131,29 @@ body {
 }
 
 /*
+ * Paso de página (OpenBook), ciclo de 10 s: la hoja aparece sobre la página derecha, gira hacia la izquierda en
+ * ~0,8 s y se desvanece. Vuelve a su sitio ya invisible, así el reinicio del ciclo no se nota.
+ */
+@keyframes page-turn {
+  0% {
+    opacity: 0;
+    transform: rotateY(0deg);
+  }
+  2% {
+    opacity: 1;
+  }
+  10% {
+    opacity: 1;
+    transform: rotateY(-180deg);
+  }
+  12%,
+  100% {
+    opacity: 0;
+    transform: rotateY(-180deg);
+  }
+}
+
+/*
  * Calendario (DayPicker, usado en DateField): mismos tokens que el resto de la app.
  * Mobile-first: en celulares el calendario ocupa el ancho de la pantalla y los 7 días se reparten el espacio
  * (7 × 44 px no caben en 320 px con márgenes); desde sm los días tienen 44 px fijos.
