@@ -17,6 +17,12 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME = /^[A-Za-z0-9_]+$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+// Compartida con el login.
+export function emailError(value: string): string | undefined {
+  if (!value) return "El correo es obligatorio.";
+  if (!EMAIL.test(value)) return "El correo no es válido. Debe tener el formato nombre@dominio.com.";
+}
+
 function isRealDate(value: string) {
   if (!DATE.test(value)) return false;
   const date = new Date(`${value}T00:00:00Z`);
@@ -41,9 +47,7 @@ export function validateField(
 
   switch (field) {
     case "email":
-      if (!value) return "El correo es obligatorio.";
-      if (!EMAIL.test(value)) return "El correo no es válido. Debe tener el formato nombre@dominio.com.";
-      return;
+      return emailError(value);
     case "password": {
       if (!value) return "La contraseña es obligatoria.";
       const missing = PASSWORD_RULES.filter((rule) => !rule.test(value)).map((rule) => rule.label.toLowerCase());
