@@ -3,6 +3,7 @@
 import { DayPicker } from "@daypicker/react";
 import { es } from "@daypicker/react/locale";
 import "@daypicker/react/style.css";
+import { CalendarDays } from "lucide-react";
 import { useId, useRef, useState, type ComponentProps } from "react";
 import { Input } from "@/components/atoms/Input";
 
@@ -84,10 +85,7 @@ export function DateField({ id, value, onChange, onBlur, calendarLabel, classNam
         onClick={() => setOpen((current) => !current)}
         className="absolute right-0 top-0 flex size-11 items-center justify-center rounded-lg text-foreground/70 transition hover:bg-foreground/5 hover:text-foreground"
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="4.5" width="18" height="16" rx="2" />
-          <path d="M3 9.5h18M8 2.5v4M16 2.5v4" />
-        </svg>
+        <CalendarDays aria-hidden="true" className="size-5" strokeWidth={1.75} />
       </button>
 
       {open && (

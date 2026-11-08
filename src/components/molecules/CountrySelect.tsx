@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Flag } from "@/components/atoms/Flag";
 import { Input } from "@/components/atoms/Input";
@@ -143,9 +144,7 @@ export function CountrySelect({
         }}
         className="absolute right-0 top-0 flex size-11 items-center justify-center rounded-lg text-foreground"
       >
-        <svg aria-hidden="true" viewBox="0 0 20 20" className={`size-5 transition-transform ${open ? "rotate-180" : ""}`}>
-          <path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <ChevronDown aria-hidden="true" className={`size-5 transition-transform ${open ? "rotate-180" : ""}`} strokeWidth={1.75} />
       </button>
 
       <ul
