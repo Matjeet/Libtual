@@ -118,8 +118,8 @@ Reporta como problema:
 - **Áreas táctiles** menores a 44 × 44 px en botones, enlaces e inputs (40 px de alto para las opciones de una lista).
 - **Inputs con letra menor a 16 px.**
 - **Flotantes abiertos** (lista de países, calendario) que se salen de la pantalla.
-- **Elementos anclados a un borde que quedan lejos de él en pantallas grandes**: el logo y las acciones del header, la navegación, y títulos o botones alineados a un lado. Desde 1024 px, si alguno queda a más del 8 % del ancho de la pantalla de su borde (unos 150 px en 1920), el contenedor los está alejando. Suele ser un `max-w-*` demasiado chico en un contenedor de ancho completo. Sugiere quitar o ampliar ese `max-w-*` y usar un padding lateral que crezca con la pantalla (por ejemplo `px-4 sm:px-6 lg:px-8 xl:px-12`).
-- **No es un problema** que el contenido naturalmente angosto (un formulario, un bloque de texto de lectura, un hero centrado) quede centrado con espacio a los lados. **Nunca sugieras agregar contenido solo para llenar espacio.**
+- **Elementos junto al borde de la pantalla que quedan lejos de él en pantallas grandes**: el logo y las acciones del header, la navegación, barras o botones fijos a un lado. Desde 1024 px, si alguno queda a más del 8 % del ancho de la pantalla de su borde (unos 150 px en 1920), su contenedor los está alejando. Suele ser un `max-w-*` en un contenedor de ancho completo. Sugiere quitarlo y usar un padding lateral que crezca con la pantalla (por ejemplo `px-4 sm:px-6 lg:px-8 xl:px-12`).
+- **No es un problema** que el contenido de la página (títulos, textos, formularios, paneles dentro de `MainTemplate`, que usa `max-w-6xl` centrado) quede centrado con espacio a los lados: es una decisión de diseño. **Nunca sugieras agregar contenido solo para llenar espacio** ni ensanchar el contenedor de la página.
 - **Contenido que en pantallas medianas o grandes se ve como el de celular** solo estirado (líneas de texto de más de ~80 caracteres, botones que ocupan todo el ancho de una pantalla de escritorio).
 - **Estilos que no son mobile-first**: uso de `max-*:` para corregir el diseño de escritorio, o anchos fijos que no caben en 320 px.
 
