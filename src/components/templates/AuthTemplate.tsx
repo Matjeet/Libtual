@@ -8,13 +8,15 @@ type AuthTemplateProps = {
   brandDescription: ReactNode;
   // Lado del formulario desde lg; el panel de marca ocupa el otro.
   formSide: "left" | "right";
+  // Muestra el botón "Ingresar" en el header (oculto por defecto).
+  showSignIn?: boolean;
   children: ReactNode;
 };
 
 // Páginas de autenticación (registro, login): un bloque sólido con el formulario y, desde lg, el panel de marca al lado.
-export function AuthTemplate({ title, brandDescription, formSide, children }: AuthTemplateProps) {
+export function AuthTemplate({ title, brandDescription, formSide, showSignIn = false, children }: AuthTemplateProps) {
   return (
-    <MainTemplate>
+    <MainTemplate showSignIn={showSignIn}>
       {/* Mobile-first: una columna; desde lg dos columnas con el panel de marca. my-auto centra el conjunto en el body. */}
       <section className="my-auto flex flex-col items-center gap-6 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16">
         <BrandPanel
