@@ -92,16 +92,18 @@ Las páginas protegidas (como `/inicio`) exigen sesión. Si no puedes entrar, re
     }
   }
 
-  // 6. Uso del ancho: contenido real dentro de <main> y del header
-  const extent = (root) => {
+  // 6. Distancia a los bordes de la pantalla: cuánto se alejan del borde izquierdo y derecho
+  //    los elementos visibles de cada zona (en px y en % del ancho). Sirve para detectar elementos
+  //    anclados a un borde (logo, acciones del header, navegación) que quedan muy lejos de él.
+  const edges = (root) => {
     const els = root ? [...root.querySelectorAll("*")].filter(visible) : [];
     if (!els.length) return null;
     const left = Math.min(...els.map((e) => e.getBoundingClientRect().left));
-    const right = Math.max(...els.map((e) => e.getBoundingClientRect().right));
-    return { ancho: Math.round(right - left), proporcion: +((right - left) / vw).toFixed(2), margenes: [Math.round(left), Math.round(vw - right)] };
+    const right = vw - Math.max(...els.map((e) => e.getBoundingClientRect().right));
+    return { izquierda: Math.round(left), derecha: Math.round(right), izquierdaPct: +((left / vw) * 100).toFixed(1), derechaPct: +((right / vw) * 100).toFixed(1) };
   };
 
-  return { viewport: [vw, innerHeight], main: extent(document.querySelector("main")), header: extent(document.querySelector("header")), issues };
+  return { viewport: [vw, innerHeight], header: edges(document.querySelector("header")), main: edges(document.querySelector("main")), issues };
 })();
 ```
 
@@ -115,7 +117,8 @@ Reporta como problema:
 - **Áreas táctiles** menores a 44 × 44 px en botones, enlaces e inputs (40 px de alto para las opciones de una lista).
 - **Inputs con letra menor a 16 px.**
 - **Flotantes abiertos** (lista de países, calendario) que se salen de la pantalla.
-- **Mucho espacio vacío a los lados en pantallas grandes**: desde 1024 px, si el contenido de `<main>` ocupa menos del 50 % del ancho, o si un margen lateral supera el 35 % del ancho, el layout no aprovecha la pantalla. Un formulario de una sola columna puede ser angosto, pero entonces la página debe equilibrar el espacio (por ejemplo, con un panel o columna complementaria en `lg:`), no dejar una franja en el centro.
+- **Elementos anclados a un borde que quedan lejos de él en pantallas grandes**: el logo y las acciones del header, la navegación, y títulos o botones alineados a un lado. Desde 1024 px, si alguno queda a más del 8 % del ancho de la pantalla de su borde (unos 150 px en 1920), el contenedor los está alejando. Suele ser un `max-w-*` demasiado chico en un contenedor de ancho completo. Sugiere quitar o ampliar ese `max-w-*` y usar un padding lateral que crezca con la pantalla (por ejemplo `px-4 sm:px-6 lg:px-8 xl:px-12`).
+- **No es un problema** que el contenido naturalmente angosto (un formulario, un bloque de texto de lectura, un hero centrado) quede centrado con espacio a los lados. **Nunca sugieras agregar contenido solo para llenar espacio.**
 - **Contenido que en pantallas medianas o grandes se ve como el de celular** solo estirado (líneas de texto de más de ~80 caracteres, botones que ocupan todo el ancho de una pantalla de escritorio).
 - **Estilos que no son mobile-first**: uso de `max-*:` para corregir el diseño de escritorio, o anchos fijos que no caben en 320 px.
 
