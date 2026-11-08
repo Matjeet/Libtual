@@ -35,6 +35,8 @@
   --accent: var(--palette-4);
   /* Bloques sólidos sobre el fondo (formularios): un poco más claros que el fondo, en ambos modos. */
   --card: color-mix(in oklab, var(--palette-2) 30%, white);
+  /* Barra superior: en claro igual que surface; en oscuro más apagada para que no resalte (ver bloque oscuro). */
+  --header: var(--surface);
   /* Fuera de la paleta de marca: estados de validación (error y requisito cumplido). */
   --danger: #b42318;
   --success: #187a35;
@@ -55,6 +57,7 @@
     --primary: var(--palette-1);
     --primary-foreground: var(--ink);
     --card: color-mix(in oklab, var(--palette-5) 65%, black);
+    --header: color-mix(in oklab, var(--palette-5) 55%, black);
     --danger: #fda29b;
     --success: #6fdd8b;
   }
@@ -71,6 +74,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
   --color-card: var(--card);
+  --color-header: var(--header);
   --color-danger: var(--danger);
   --color-success: var(--success);
   --font-sans: var(--font-geist-sans);
