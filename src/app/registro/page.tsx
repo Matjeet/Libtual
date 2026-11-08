@@ -15,7 +15,9 @@ export default function RegisterPage() {
       {/* Mobile-first: una columna; desde lg el panel de marca equilibra el espacio junto al formulario. */}
       <section className="flex flex-col items-center gap-6 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16">
         <BrandPanel className="hidden lg:flex" title="Libtual" description="Crea tu cuenta para empezar." />
-        <div className="flex w-full flex-col items-center gap-6">
+        {/* Bloque sólido sobre el fondo animado. En celular va de borde a borde (así el calendario conserva el ancho
+            para días de 44 px); desde sm es una tarjeta. */}
+        <div className="-mx-4 flex flex-col items-center gap-6 self-stretch bg-card px-4 py-8 shadow-sm sm:mx-0 sm:w-full sm:max-w-md sm:self-center sm:rounded-2xl sm:p-8 sm:shadow-lg sm:ring-1 sm:ring-foreground/10 lg:justify-self-center">
           <h1 className="text-3xl font-semibold tracking-tight">Crea tu cuenta</h1>
           <Suspense fallback={<RegisterFormSkeleton />}>
             <RegisterSection />
