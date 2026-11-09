@@ -4,6 +4,7 @@ import { CircleUserRound, LogOut, Pencil, TriangleAlert } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/atoms/Button";
 import { Flag } from "@/components/atoms/Flag";
+import { DeleteAccount } from "@/components/organisms/DeleteAccount";
 import { signOut } from "@/lib/auth";
 import { checkUsername, updateUsername } from "@/lib/profile";
 import { usernameError } from "@/lib/registration";
@@ -45,8 +46,8 @@ export function ProfileMenu({ profile }: { profile: Profile }) {
     if (!wrapperRef.current?.contains(event.target as Node)) close();
   });
   const onEscape = useEffectEvent((event: KeyboardEvent) => {
-    // Con el modal abierto, Escape solo cierra el modal.
-    if (event.key !== "Escape" || dialogRef.current?.open) return;
+    // Con un modal abierto (cambio de nombre o eliminación de la cuenta), Escape solo cierra el modal.
+    if (event.key !== "Escape" || wrapperRef.current?.querySelector("dialog[open]")) return;
     close();
     triggerRef.current?.focus();
   });
@@ -192,10 +193,7 @@ export function ProfileMenu({ profile }: { profile: Profile }) {
                 {checking ? "Verificando..." : "Guardar"}
               </Button>
             )}
-            {/* shortcut: sin acción hasta implementar el flujo de eliminación de la cuenta. */}
-            <Button variant="danger" className="min-w-40">
-              Eliminar cuenta
-            </Button>
+            <DeleteAccount />
           </div>
         </div>
       )}
