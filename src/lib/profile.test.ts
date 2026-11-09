@@ -104,11 +104,12 @@ describe("deleteAccount", () => {
     expect(await deleteAccount("Clave#2026")).toEqual({ error: "No pudimos eliminar tu cuenta. Intenta de nuevo." });
   });
 
-  test("con la contraseña correcta elimina la cuenta y borra la sesión local", async () => {
+  test("con la contraseña correcta elimina la cuenta sin cerrar aún la sesión", async () => {
     db.rpc.mockResolvedValue({ data: true, error: null });
     expect(await deleteAccount(" Clave#2026 ")).toEqual({ deleted: true });
     // La contraseña se envía tal cual: los espacios pueden ser parte de ella.
     expect(db.rpc).toHaveBeenCalledWith("delete_own_account", { p_password: " Clave#2026 " });
-    expect(db.signOut).toHaveBeenCalledWith({ scope: "local" });
+    // Cerrarla aquí haría que Next redirija antes de mostrar la despedida.
+    expect(db.signOut).not.toHaveBeenCalled();
   });
 });

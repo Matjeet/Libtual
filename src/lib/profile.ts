@@ -70,7 +70,7 @@ export async function deleteAccount(password: string): Promise<DeleteAccountResu
   if (error) return { error: "No pudimos eliminar tu cuenta. Intenta de nuevo." };
   if (!deleted) return { error: "La contraseña no es correcta." };
 
-  // El usuario ya no existe: solo se borran las cookies de esta sesión.
-  await supabase.auth.signOut({ scope: "local" });
+  // La sesión se cierra después, al salir del modal de despedida: borrar las cookies aquí haría que Next
+  // vuelva a renderizar la página actual sin sesión y redirija antes de mostrar la despedida.
   return { deleted: true };
 }
