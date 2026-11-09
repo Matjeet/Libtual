@@ -16,7 +16,12 @@ const LOGIN_PHRASES = [
 
 export default function LoginPage() {
   return (
-    <AuthTemplate title="Ingresa a tu cuenta" brandDescription={<RotatingText phrases={LOGIN_PHRASES} />} formSide="left">
+    <AuthTemplate
+      title="Ingresa a tu cuenta"
+      brandTitle="¡Qué placer verte de nuevo!"
+      brandDescription={<RotatingText phrases={LOGIN_PHRASES} />}
+      formSide="left"
+    >
       <LoginForm />
       <p className="text-center text-foreground/80">
         ¿No tienes cuenta?{" "}

@@ -10,7 +10,13 @@ export const metadata: Metadata = { title: "Registro | Libtual" };
 
 export default function RegisterPage() {
   return (
-    <AuthTemplate title="Crea tu cuenta" brandDescription="Crea tu cuenta para empezar." formSide="right" showSignIn>
+    <AuthTemplate
+      title="Crea tu cuenta"
+      brandTitle="¡Fantástico! Estás a solo un paso de tener tu librería"
+      brandDescription="Crea tu cuenta para empezar."
+      formSide="right"
+      showSignIn
+    >
       <Suspense fallback={<RegisterFormSkeleton />}>
         <RegisterSection />
       </Suspense>
