@@ -2,7 +2,7 @@
 
 import { TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
-import { BrokenBookIllustration } from "@/components/atoms/BrokenBookIllustration";
+import { BrokenShelfIllustration } from "@/components/atoms/BrokenShelfIllustration";
 import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
 import { FormField } from "@/components/molecules/FormField";
@@ -120,7 +120,7 @@ export function DeleteAccount() {
 
         {step === "farewell" && (
           <div className="flex flex-col items-center text-center">
-            <BrokenBookIllustration className="h-24 w-28" />
+            <BrokenShelfIllustration className="h-36 w-[155px]" />
             <h2 id="delete-dialog-title" className="mt-4 text-xl font-semibold">
               Lamentamos que te vayas
             </h2>
