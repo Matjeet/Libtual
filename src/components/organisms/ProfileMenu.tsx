@@ -1,9 +1,10 @@
 "use client";
 
-import { CircleUserRound, Pencil, TriangleAlert } from "lucide-react";
+import { CircleUserRound, LogOut, Pencil, TriangleAlert } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/atoms/Button";
 import { Flag } from "@/components/atoms/Flag";
+import { signOut } from "@/lib/auth";
 import { checkUsername, updateUsername } from "@/lib/profile";
 import { usernameError } from "@/lib/registration";
 
@@ -114,6 +115,14 @@ export function ProfileMenu({ profile }: { profile: Profile }) {
             aria-hidden="true"
             className="absolute -top-2.5 right-3 size-5 rotate-45 rounded-tl-[3px] border-l border-t border-foreground/10 bg-card"
           />
+          {/* Formulario con server action: cierra la sesión aunque el JavaScript aún no haya cargado. */}
+          <form action={signOut} className="self-end">
+            <Button type="submit" variant="ghost" className="gap-2">
+              <LogOut aria-hidden="true" className="size-5" />
+              Cerrar sesión
+            </Button>
+          </form>
+
           {/* Cada dato: etiqueta pequeña, valor grande y una línea debajo. */}
           <div className="border-b border-foreground/20 pb-2">
             <p className="text-sm text-foreground/70">Correo</p>

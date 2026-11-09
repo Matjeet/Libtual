@@ -10,6 +10,8 @@ const actions = vi.hoisted(() => ({
   updateUsername: vi.fn<(username: string) => Promise<UsernameResult>>(),
 }));
 vi.mock("@/lib/profile", () => actions);
+const signOut = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("@/lib/auth", () => ({ signOut }));
 
 const PROFILE: Profile = { email: "ana@correo.com", username: "ana_23", countryCode: "CO", countryName: "Colombia" };
 
@@ -30,6 +32,7 @@ async function openAndEdit(user: UserEvent, value: string) {
 beforeEach(() => {
   actions.checkUsername.mockReset();
   actions.updateUsername.mockReset();
+  signOut.mockClear();
 });
 
 describe("ProfileMenu", () => {
@@ -141,5 +144,16 @@ describe("ProfileMenu", () => {
     expect(screen.getByRole("dialog", { name: "Mi perfil" })).toBeInTheDocument();
     expect(actions.checkUsername).not.toHaveBeenCalled();
     expect(actions.updateUsername).not.toHaveBeenCalled();
+  });
+
+  test("Cerrar sesión va arriba de los datos del perfil y llama a la acción", async () => {
+    const user = userEvent.setup();
+    render(<ProfileMenu profile={PROFILE} />);
+    await user.click(trigger());
+    const logout = screen.getByRole("button", { name: "Cerrar sesión" });
+    expect(logout.compareDocumentPosition(screen.getByText("Correo")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    await user.click(logout);
+    expect(signOut).toHaveBeenCalled();
   });
 });
