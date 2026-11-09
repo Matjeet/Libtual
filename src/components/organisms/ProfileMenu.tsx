@@ -198,11 +198,11 @@ export function ProfileMenu({ profile }: { profile: Profile }) {
           </p>
         </div>
         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button variant="secondary" onClick={() => dialogRef.current?.close()} disabled={saving}>
+          <Button variant="ghost" onClick={() => dialogRef.current?.close()} disabled={saving}>
             Cancelar
           </Button>
           <Button onClick={confirm} disabled={saving}>
-            {saving ? "Guardando..." : "Sí, cambiarlo"}
+            {saving ? "Guardando..." : "Sí, cámbialo"}
           </Button>
         </div>
       </dialog>

@@ -96,7 +96,7 @@ describe("ProfileMenu", () => {
     expect(modal).toHaveTextContent("ya no podrán encontrar tu perfil desde el buscador");
     expect(actions.updateUsername).not.toHaveBeenCalled();
 
-    await user.click(within(modal).getByRole("button", { name: "Sí, cambiarlo" }));
+    await user.click(within(modal).getByRole("button", { name: "Sí, cámbialo" }));
     expect(actions.updateUsername).toHaveBeenCalledWith("ana_lee");
     expect(await screen.findByText("Tu nombre de usuario se actualizó.")).toBeInTheDocument();
     expect(usernameInput()).toHaveValue("ana_lee");
