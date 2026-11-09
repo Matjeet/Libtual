@@ -107,8 +107,13 @@ export function ProfileMenu({ profile }: { profile: Profile }) {
           id="profile-menu"
           role="dialog"
           aria-label="Mi perfil"
-          className="absolute inset-x-4 top-full mt-2 flex flex-col gap-4 rounded-2xl bg-card p-5 text-foreground shadow-lg ring-1 ring-foreground/10 sm:left-auto sm:right-6 sm:w-80 lg:right-8 xl:right-12"
+          className="absolute inset-x-4 top-full mt-4 flex flex-col gap-4 rounded-2xl bg-card p-5 text-foreground shadow-lg ring-1 ring-foreground/10 sm:left-auto sm:right-6 sm:w-80 lg:right-8 xl:right-12"
         >
+          {/* Pico de la burbuja: un cuadrado girado, centrado bajo el icono (el panel y el icono comparten borde derecho). */}
+          <span
+            aria-hidden="true"
+            className="absolute -top-2.5 right-3 size-5 rotate-45 rounded-tl-[3px] border-l border-t border-foreground/10 bg-card"
+          />
           {/* Cada dato: etiqueta pequeña, valor grande y una línea debajo. */}
           <div className="border-b border-foreground/20 pb-2">
             <p className="text-sm text-foreground/70">Correo</p>
