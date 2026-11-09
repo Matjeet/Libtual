@@ -40,6 +40,9 @@
   /* Fuera de la paleta de marca: estados de validación (error y requisito cumplido). */
   --danger: #b42318;
   --success: #187a35;
+  /* Acciones destructivas (eliminar la cuenta): rojo vivo con texto blanco, igual en ambos modos (contraste 4.8:1). */
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
 }
 
 /*
@@ -77,6 +80,8 @@
   --color-header: var(--header);
   --color-danger: var(--danger);
   --color-success: var(--success);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
