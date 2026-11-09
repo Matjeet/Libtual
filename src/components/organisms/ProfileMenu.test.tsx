@@ -17,6 +17,7 @@ const trigger = () => screen.getByRole("button", { name: "Mi perfil" });
 const usernameInput = () => screen.getByLabelText("Nombre de usuario");
 const pencil = () => screen.getByRole("button", { name: "Editar nombre de usuario" });
 const saveButton = () => screen.getByRole("button", { name: "Guardar" });
+const menu = () => screen.getByRole("dialog", { name: "Mi perfil" });
 const usernameError = () => document.getElementById("profile-username-error")!;
 
 async function openAndEdit(user: UserEvent, value: string) {
@@ -41,20 +42,21 @@ describe("ProfileMenu", () => {
     const menu = screen.getByRole("dialog", { name: "Mi perfil" });
     expect(trigger()).toHaveAttribute("aria-expanded", "true");
     expect(within(menu).getByText("ana@correo.com")).toBeInTheDocument();
-    expect(usernameInput()).toHaveValue("ana_23");
+    expect(within(menu).getByText("ana_23")).toBeInTheDocument();
     expect(within(menu).getByText("Colombia")).toBeInTheDocument();
   });
 
-  test("el nombre de usuario se habilita con el lápiz y Guardar solo cuando cambia", async () => {
+  test("el lápiz convierte el nombre en un campo editable y muestra Guardar, activo solo cuando cambia", async () => {
     const user = userEvent.setup();
     render(<ProfileMenu profile={PROFILE} />);
     await user.click(trigger());
-    expect(usernameInput()).toBeDisabled();
-    expect(saveButton()).toBeDisabled();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Guardar" })).not.toBeInTheDocument();
 
     await user.click(pencil());
-    expect(usernameInput()).toBeEnabled();
+    expect(usernameInput()).toHaveValue("ana_23");
     expect(usernameInput()).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "Editar nombre de usuario" })).not.toBeInTheDocument();
     expect(saveButton()).toBeDisabled();
 
     await user.type(usernameInput(), "x");
@@ -99,8 +101,9 @@ describe("ProfileMenu", () => {
     await user.click(within(modal).getByRole("button", { name: "Sí, cámbialo" }));
     expect(actions.updateUsername).toHaveBeenCalledWith("ana_lee");
     expect(await screen.findByText("Tu nombre de usuario se actualizó.")).toBeInTheDocument();
-    expect(usernameInput()).toHaveValue("ana_lee");
-    expect(usernameInput()).toBeDisabled();
+    expect(within(menu()).getByText("ana_lee")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Guardar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog", { name: "¿Cambiar tu nombre de usuario?" })).not.toBeInTheDocument();
   });
 
@@ -126,15 +129,15 @@ describe("ProfileMenu", () => {
     expect(trigger()).toHaveFocus();
 
     await user.click(trigger());
-    expect(usernameInput()).toHaveValue("ana_23");
-    expect(usernameInput()).toBeDisabled();
+    expect(within(menu()).getByText("ana_23")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 
-  test("el botón Eliminar perfil está visible y por ahora no hace nada", async () => {
+  test("el botón Eliminar cuenta está visible y por ahora no hace nada", async () => {
     const user = userEvent.setup();
     render(<ProfileMenu profile={PROFILE} />);
     await user.click(trigger());
-    await user.click(screen.getByRole("button", { name: "Eliminar perfil" }));
+    await user.click(screen.getByRole("button", { name: "Eliminar cuenta" }));
     expect(screen.getByRole("dialog", { name: "Mi perfil" })).toBeInTheDocument();
     expect(actions.checkUsername).not.toHaveBeenCalled();
     expect(actions.updateUsername).not.toHaveBeenCalled();

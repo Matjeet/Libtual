@@ -4,8 +4,6 @@ import { CircleUserRound, Pencil, TriangleAlert } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/atoms/Button";
 import { Flag } from "@/components/atoms/Flag";
-import { Input } from "@/components/atoms/Input";
-import { FormField } from "@/components/molecules/FormField";
 import { checkUsername, updateUsername } from "@/lib/profile";
 import { usernameError } from "@/lib/registration";
 
@@ -108,25 +106,27 @@ export function ProfileMenu({ profile }: { profile: Profile }) {
         <div
           id="profile-menu"
           role="dialog"
-          aria-labelledby="profile-menu-title"
+          aria-label="Mi perfil"
           className="absolute inset-x-4 top-full mt-2 flex flex-col gap-4 rounded-2xl bg-card p-5 text-foreground shadow-lg ring-1 ring-foreground/10 sm:left-auto sm:right-6 sm:w-80 lg:right-8 xl:right-12"
         >
-          <h2 id="profile-menu-title" className="text-lg font-semibold">
-            Mi perfil
-          </h2>
-
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">Correo</p>
-            <p className="break-all text-foreground/80">{profile.email}</p>
+          {/* Cada dato: etiqueta pequeña, valor grande y una línea debajo. */}
+          <div className="border-b border-foreground/20 pb-2">
+            <p className="text-sm text-foreground/70">Correo</p>
+            <p className="break-all text-lg">{profile.email}</p>
           </div>
 
-          <FormField id="profile-username" label="Nombre de usuario" error={error}>
-            <div className="flex items-center gap-2">
-              <Input
+          {/* Al editar, la línea de la fila hace de subrayado del input. */}
+          <div
+            className={`border-b pb-2 transition focus-within:border-foreground ${error ? "border-danger focus-within:border-danger" : "border-foreground/20"}`}
+          >
+            <label htmlFor="profile-username" className="text-sm text-foreground/70">
+              Nombre de usuario
+            </label>
+            {editing ? (
+              <input
                 ref={inputRef}
                 id="profile-username"
                 value={username}
-                disabled={!editing}
                 maxLength={20}
                 autoComplete="username"
                 onChange={(event) => {
@@ -136,43 +136,51 @@ export function ProfileMenu({ profile }: { profile: Profile }) {
                 onBlur={() => setTouched(true)}
                 aria-invalid={Boolean(error)}
                 aria-describedby="profile-username-error"
-                className="disabled:bg-foreground/5 disabled:text-foreground/80"
+                className="block h-11 w-full bg-transparent text-lg outline-none"
               />
-              <button
-                type="button"
-                aria-label="Editar nombre de usuario"
-                onClick={() => {
-                  setEditing(true);
-                  setNotice(undefined);
-                  inputRef.current?.focus();
-                }}
-                className="inline-flex size-11 shrink-0 items-center justify-center rounded-full transition hover:bg-foreground/10"
-              >
-                <Pencil aria-hidden="true" className="size-5" />
-              </button>
-            </div>
-          </FormField>
-
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">País</p>
-            <p className="flex items-center gap-2 text-foreground/80">
-              <Flag code={profile.countryCode} />
-              {profile.countryName}
+            ) : (
+              // Mismo alto que el input (44 px por el botón del lápiz): al editar no se mueve nada.
+              <p className="flex items-center gap-1 text-lg">
+                <span className="min-w-0 break-all">{saved}</span>
+                <button
+                  type="button"
+                  aria-label="Editar nombre de usuario"
+                  onClick={() => {
+                    setEditing(true);
+                    setNotice(undefined);
+                  }}
+                  className="inline-flex size-11 shrink-0 items-center justify-center rounded-full transition hover:bg-foreground/10"
+                >
+                  <Pencil aria-hidden="true" className="size-5" />
+                </button>
+              </p>
+            )}
+            <p id="profile-username-error" className="text-sm text-danger" aria-live="polite">
+              {error}
+            </p>
+            <p role="status" className="text-sm text-success">
+              {notice}
             </p>
           </div>
 
-          <p role="status" className="text-sm text-success empty:hidden">
-            {notice}
-          </p>
+          <div className="border-b border-foreground/20 pb-2">
+            <p className="text-sm text-foreground/70">País</p>
+            <p className="flex items-center gap-3 text-lg">
+              {profile.countryName}
+              <Flag code={profile.countryCode} />
+            </p>
+          </div>
 
-          <Button onClick={save} disabled={!changed || checking || saving} className="w-full">
-            {checking ? "Verificando..." : "Guardar"}
-          </Button>
-
-          <div className="border-t border-foreground/10 pt-4">
-            {/* shortcut: sin acción hasta implementar el flujo de eliminación del perfil. */}
-            <Button variant="danger" className="w-full">
-              Eliminar perfil
+          <div className="flex flex-col items-center gap-3 pt-2">
+            {/* Guardar solo aparece al editar el nombre de usuario. */}
+            {editing && (
+              <Button onClick={save} disabled={!changed || checking || saving} className="min-w-40">
+                {checking ? "Verificando..." : "Guardar"}
+              </Button>
+            )}
+            {/* shortcut: sin acción hasta implementar el flujo de eliminación de la cuenta. */}
+            <Button variant="danger" className="min-w-40">
+              Eliminar cuenta
             </Button>
           </div>
         </div>
