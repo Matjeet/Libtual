@@ -54,3 +54,23 @@ export async function updateUsername(raw: string): Promise<UsernameResult> {
   refresh();
   return { username: data.username };
 }
+
+export type DeleteAccountResult = { error?: string; deleted?: boolean };
+
+// La función de la base de datos verifica la contraseña y elimina la cuenta en un solo paso:
+// sin la contraseña correcta no se puede borrar, aunque se llame directamente.
+export async function deleteAccount(password: string): Promise<DeleteAccountResult> {
+  if (!password) return { error: "Escribe tu contraseña." };
+
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getClaims();
+  if (!auth?.claims?.sub) return { error: "Tu sesión terminó. Vuelve a ingresar." };
+
+  const { data: deleted, error } = await supabase.rpc("delete_own_account", { p_password: password });
+  if (error) return { error: "No pudimos eliminar tu cuenta. Intenta de nuevo." };
+  if (!deleted) return { error: "La contraseña no es correcta." };
+
+  // La sesión se cierra después, al salir del modal de despedida: borrar las cookies aquí haría que Next
+  // vuelva a renderizar la página actual sin sesión y redirija antes de mostrar la despedida.
+  return { deleted: true };
+}

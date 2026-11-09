@@ -12,6 +12,8 @@ const actions = vi.hoisted(() => ({
 vi.mock("@/lib/profile", () => actions);
 const signOut = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("@/lib/auth", () => ({ signOut }));
+// El flujo de eliminación se prueba en DeleteAccount.test.tsx.
+vi.mock("@/components/organisms/DeleteAccount", () => ({ DeleteAccount: () => <button type="button">Eliminar cuenta</button> }));
 
 const PROFILE: Profile = { email: "ana@correo.com", username: "ana_23", countryCode: "CO", countryName: "Colombia" };
 
@@ -136,14 +138,11 @@ describe("ProfileMenu", () => {
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 
-  test("el botón Eliminar cuenta está visible y por ahora no hace nada", async () => {
+  test("muestra el botón Eliminar cuenta al final del menú", async () => {
     const user = userEvent.setup();
     render(<ProfileMenu profile={PROFILE} />);
     await user.click(trigger());
-    await user.click(screen.getByRole("button", { name: "Eliminar cuenta" }));
-    expect(screen.getByRole("dialog", { name: "Mi perfil" })).toBeInTheDocument();
-    expect(actions.checkUsername).not.toHaveBeenCalled();
-    expect(actions.updateUsername).not.toHaveBeenCalled();
+    expect(within(menu()).getByRole("button", { name: "Eliminar cuenta" })).toBeInTheDocument();
   });
 
   test("Cerrar sesión va arriba de los datos del perfil y llama a la acción", async () => {
