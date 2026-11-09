@@ -23,6 +23,13 @@ export function emailError(value: string): string | undefined {
   if (!EMAIL.test(value)) return "El correo no es válido. Debe tener el formato nombre@dominio.com.";
 }
 
+// Compartida con la edición del perfil.
+export function usernameError(value: string): string | undefined {
+  if (!value) return "El nombre de usuario es obligatorio.";
+  if (value.length < 3 || value.length > 20) return "El nombre de usuario debe tener entre 3 y 20 caracteres.";
+  if (!USERNAME.test(value)) return "Usa solo letras sin tildes, números y guion bajo (_), sin espacios.";
+}
+
 function isRealDate(value: string) {
   if (!DATE.test(value)) return false;
   const date = new Date(`${value}T00:00:00Z`);
@@ -55,10 +62,7 @@ export function validateField(
       return;
     }
     case "username":
-      if (!value) return "El nombre de usuario es obligatorio.";
-      if (value.length < 3 || value.length > 20) return "El nombre de usuario debe tener entre 3 y 20 caracteres.";
-      if (!USERNAME.test(value)) return "Usa solo letras sin tildes, números y guion bajo (_), sin espacios.";
-      return;
+      return usernameError(value);
     case "country":
       if (!value) return "Selecciona tu país.";
       if (!country) return "Selecciona un país de la lista.";
