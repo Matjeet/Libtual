@@ -9,7 +9,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 const variantClasses: Record<ButtonVariant, string> = {
   primary: "bg-primary text-primary-foreground hover:opacity-90",
   secondary: "bg-secondary text-secondary-foreground hover:opacity-90",
-  danger: "border border-danger text-danger hover:bg-danger/10",
+  danger: "border border-danger bg-danger/10 text-danger hover:bg-danger/20",
   // Acción secundaria que no compite con la principal (por ejemplo, Cancelar).
   ghost: "bg-transparent text-foreground hover:bg-foreground/10",
 };
