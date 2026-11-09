@@ -1,12 +1,12 @@
 "use client";
 
 import { TriangleAlert } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { BrokenBookIllustration } from "@/components/atoms/BrokenBookIllustration";
 import { Button } from "@/components/atoms/Button";
 import { Input } from "@/components/atoms/Input";
 import { FormField } from "@/components/molecules/FormField";
+import { signOut } from "@/lib/auth";
 import { deleteAccount } from "@/lib/profile";
 
 type Step = "warning" | "password" | "farewell";
@@ -17,7 +17,6 @@ export function DeleteAccount() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -37,10 +36,9 @@ export function DeleteAccount() {
     cancelRef.current?.focus();
   }
 
-  // refresh: el header vuelve a leer la sesión (ya cerrada) y deja de mostrar el menú del perfil.
+  // Cierra la sesión de la cuenta ya eliminada y lleva a la página inicial (lo hace la server action).
   function goHome() {
-    router.replace("/");
-    router.refresh();
+    startTransition(() => signOut());
   }
 
   function submit(event: FormEvent) {
@@ -127,7 +125,7 @@ export function DeleteAccount() {
               Lamentamos que te vayas
             </h2>
             <p className="mt-2 text-foreground/80">Tu cuenta fue eliminada. Esperamos que pronto vuelvas a Libtual.</p>
-            <Button ref={homeRef} className="mt-6" onClick={goHome}>
+            <Button ref={homeRef} className="mt-6" onClick={goHome} disabled={pending}>
               Ir al inicio
             </Button>
           </div>

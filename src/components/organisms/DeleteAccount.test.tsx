@@ -4,11 +4,11 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { DeleteAccountResult } from "@/lib/profile";
 import { DeleteAccount } from "./DeleteAccount";
 
-// La server action y el router se reemplazan: aquí solo se prueba el flujo del modal.
+// Las server actions se reemplazan: aquí solo se prueba el flujo del modal.
 const deleteAccount = vi.hoisted(() => vi.fn<(password: string) => Promise<DeleteAccountResult>>());
 vi.mock("@/lib/profile", () => ({ deleteAccount }));
-const router = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => router }));
+const signOut = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("@/lib/auth", () => ({ signOut }));
 
 const modal = () => screen.getByRole("dialog");
 const button = (name: string) => within(modal()).getByRole("button", { name });
@@ -20,8 +20,7 @@ async function goToPassword(user: UserEvent) {
 
 beforeEach(() => {
   deleteAccount.mockReset();
-  router.replace.mockReset();
-  router.refresh.mockReset();
+  signOut.mockClear();
 });
 
 describe("DeleteAccount", () => {
@@ -72,6 +71,7 @@ describe("DeleteAccount", () => {
     await user.click(button("Eliminar cuenta"));
 
     expect(deleteAccount).toHaveBeenCalledWith("otra");
+    expect(signOut).not.toHaveBeenCalled();
     expect(await within(modal()).findByText("La contraseña no es correcta.")).toBeInTheDocument();
     expect(modal()).toHaveAccessibleName("Confirma con tu contraseña");
   });
@@ -86,10 +86,10 @@ describe("DeleteAccount", () => {
 
     expect(await screen.findByRole("heading", { name: "Lamentamos que te vayas" })).toBeInTheDocument();
     expect(modal()).toHaveTextContent("Esperamos que pronto vuelvas a Libtual.");
-    expect(router.replace).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
 
+    // signOut cierra la sesión y redirige a "/".
     await user.click(button("Ir al inicio"));
-    expect(router.replace).toHaveBeenCalledWith("/");
-    expect(router.refresh).toHaveBeenCalled();
+    expect(signOut).toHaveBeenCalled();
   });
 });
