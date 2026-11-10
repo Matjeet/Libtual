@@ -48,6 +48,8 @@
   --room: var(--palette-3);
   --wood: #5a3820;
   --wood-edge: #3a2414;
+  /* Fondo de cada piso: madera muy oscura, como la parte de atrás de la estantería. */
+  --wood-back: #24160c;
 }
 
 /*
@@ -90,6 +92,7 @@
   --color-room: var(--room);
   --color-wood: var(--wood);
   --color-wood-edge: var(--wood-edge);
+  --color-wood-back: var(--wood-back);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

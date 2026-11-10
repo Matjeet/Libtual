@@ -1,7 +1,7 @@
 // shortcut: siempre 3 pisos vacíos; cuando haya libros, se agregará un piso nuevo cada vez que el último se llene.
 const SHELVES = 3;
 
-// Estantería sin fondo: el tablón de arriba y los lados quedan fijos; los pisos hacen scroll por dentro.
+// Estantería: el tablón de arriba y los lados quedan fijos; los pisos hacen scroll por dentro.
 // Cada piso ocupa un tercio del alto visible, así al inicio se ven exactamente 3 y solo hay scroll cuando hay más.
 export function Bookshelf() {
   return (
@@ -23,7 +23,8 @@ export function Bookshelf() {
           {Array.from({ length: SHELVES }, (_, i) => (
             // min-h-28: en pantallas muy bajas el piso no se aplasta (ahí sí habrá scroll).
             <div key={i} data-testid="shelf" className="flex min-h-28 shrink-0 basis-1/3 flex-col">
-              <div className="flex-1" />
+              {/* Fondo oscuro del hueco, con la sombra que deja el tablón de arriba. */}
+              <div className="flex-1 bg-wood-back shadow-[inset_0_10px_12px_-8px_rgb(0_0_0/0.7)]" />
               <div className="wood-grain-x h-5 border-b-[5px] border-wood-edge shadow-[0_6px_8px_-6px_rgb(0_0_0/0.45)]" />
             </div>
           ))}
