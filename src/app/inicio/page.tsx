@@ -28,8 +28,9 @@ async function AuthenticatedHome() {
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       {/* La bolsa va en el espacio libre a la izquierda de la estantería, sin taparla: solo desde xl hay lugar.
-          Su ancho es el espacio libre menos un margen, con un máximo de 13rem. */}
-      <PaperBag className="absolute bottom-0 right-full mr-4 hidden w-[min(13rem,calc((100vw-72rem)/2+2rem))] xl:block" />
+          Su ancho es el espacio libre menos un margen, con un máximo de 13rem.
+          Al pasar el mouse se comprime un poco desde la base (que está en el suelo) y se queda así mientras dure el hover. */}
+      <PaperBag className="absolute bottom-0 right-full mr-4 hidden w-[min(13rem,calc((100vw-72rem)/2+2rem))] origin-bottom transition-transform duration-300 ease-out hover:scale-x-[1.04] hover:scale-y-[0.9] motion-reduce:transition-none xl:block" />
       <Bookshelf />
     </div>
   );
