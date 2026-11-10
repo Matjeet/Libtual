@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { PaperBag } from "@/components/atoms/PaperBag";
 import { Bookshelf } from "@/components/organisms/Bookshelf";
 import { BookshelfSkeleton } from "@/components/organisms/BookshelfSkeleton";
 import { RoomTemplate } from "@/components/templates/RoomTemplate";
@@ -24,5 +25,12 @@ async function AuthenticatedHome() {
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) redirect("/ingresar");
 
-  return <Bookshelf />;
+  return (
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {/* La bolsa va en el espacio libre a la izquierda de la estantería, sin taparla: solo desde xl hay lugar.
+          Su ancho es el espacio libre menos un margen, con un máximo de 13rem. */}
+      <PaperBag className="absolute bottom-0 right-full mr-4 hidden w-[min(13rem,calc((100vw-72rem)/2+2rem))] xl:block" />
+      <Bookshelf />
+    </div>
+  );
 }
