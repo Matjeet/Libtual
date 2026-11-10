@@ -43,6 +43,10 @@
   /* Acciones destructivas (eliminar la cuenta): rojo vivo con texto blanco, igual en ambos modos (contraste 4.8:1). */
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
+  /* Página de inicio: fondo sólido de la paleta y madera de la estantería (fuera de la paleta de marca). */
+  --room: var(--palette-1);
+  --wood: #8b5a2b;
+  --wood-edge: #5e3b1a;
 }
 
 /*
@@ -63,6 +67,7 @@
     --header: color-mix(in oklab, var(--palette-5) 55%, black);
     --danger: #fda29b;
     --success: #6fdd8b;
+    --room: var(--palette-5);
   }
 }
 
@@ -82,6 +87,9 @@
   --color-success: var(--success);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-room: var(--room);
+  --color-wood: var(--wood);
+  --color-wood-edge: var(--wood-edge);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
