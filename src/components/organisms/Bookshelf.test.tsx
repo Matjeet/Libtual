@@ -3,17 +3,14 @@ import { describe, expect, test } from "vitest";
 import { Bookshelf } from "./Bookshelf";
 
 describe("Bookshelf", () => {
-  test("es una región con título que se puede enfocar para hacer scroll", () => {
+  test("es una región con título y, sin libros, no tiene scroll", () => {
     render(<Bookshelf />);
     const shelf = screen.getByRole("region", { name: "Tu estantería" });
-    expect(shelf).toHaveAttribute("tabindex", "0");
-    expect(shelf.className).toContain("overflow-y-auto");
+    expect(shelf.className).toContain("overflow-hidden");
   });
 
-  test("al inicio tiene 3 pisos, cada uno de un tercio del alto visible", () => {
+  test("todos los pisos tienen el mismo alto estándar", () => {
     render(<Bookshelf />);
-    const shelves = screen.getAllByTestId("shelf");
-    expect(shelves).toHaveLength(3);
-    for (const shelf of shelves) expect(shelf.className).toContain("basis-1/3");
+    for (const shelf of screen.getAllByTestId("shelf")) expect(shelf.className).toContain("h-[10.5rem]");
   });
 });
