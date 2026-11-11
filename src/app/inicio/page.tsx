@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { PaperBag } from "@/components/atoms/PaperBag";
-import { SideTable } from "@/components/atoms/SideTable";
 import { Bookshelf } from "@/components/organisms/Bookshelf";
 import { BookshelfSkeleton } from "@/components/organisms/BookshelfSkeleton";
+import { RoomScene } from "@/components/organisms/RoomScene";
 import { RoomTemplate } from "@/components/templates/RoomTemplate";
 import { createClient } from "@/lib/supabase/server";
 
@@ -27,15 +26,8 @@ async function AuthenticatedHome() {
   if (!data?.claims) redirect("/ingresar");
 
   return (
-    // --side-gap: separación entre la estantería y la bolsa/mesa. 1rem hasta 1536 px y luego crece con la pantalla hasta 6rem.
-    <div className="relative flex min-h-0 flex-1 flex-col [--side-gap:clamp(1rem,calc((100vw-96rem)/4+1rem),6rem)]">
-      {/* La bolsa va en el espacio libre a la izquierda de la estantería, sin taparla: solo desde xl hay lugar.
-          Su ancho es el espacio libre menos la separación y 1rem de margen con el borde, con un máximo de 13rem.
-          Al pasar el mouse se comprime un poco desde la base (que está en el suelo) y se queda así mientras dure el hover. */}
-      <PaperBag className="absolute bottom-0 right-full mr-(--side-gap) hidden w-[min(13rem,calc((100vw-72rem)/2+3rem-var(--side-gap)))] origin-bottom transition-transform duration-300 ease-out hover:scale-x-[1.04] hover:scale-y-[0.9] motion-reduce:transition-none xl:block" />
+    <RoomScene>
       <Bookshelf />
-      {/* La mesa, igual que la bolsa pero a la derecha: mismo ancho, misma separación y apoyada en el borde de abajo. */}
-      <SideTable className="absolute bottom-0 left-full ml-(--side-gap) hidden w-[min(13rem,calc((100vw-72rem)/2+3rem-var(--side-gap)))] xl:block" />
-    </div>
+    </RoomScene>
   );
 }
