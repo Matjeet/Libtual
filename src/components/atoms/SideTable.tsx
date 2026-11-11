@@ -6,7 +6,7 @@ const FRAME = { wood: "#5a3820", edge: "#3a2414", photo: "#e6eef0", head: "#f3e2
 
 export function SideTable({ className = "" }: { className?: string }) {
   return (
-    <svg viewBox="0 -60 200 150" aria-hidden="true" className={className} strokeLinecap="round">
+    <svg viewBox="0 -97 200 187" aria-hidden="true" className={className} strokeLinecap="round">
       {/* Patas: llegan hasta abajo del dibujo para que parezcan seguir fuera de la pantalla. */}
       <rect x={22} y={30} width={28} height={70} rx={6} fill={WOOD.leg} stroke={WOOD.edge} strokeWidth={1.5} />
       <rect x={150} y={30} width={28} height={70} rx={6} fill={WOOD.leg} stroke={WOOD.edge} strokeWidth={1.5} />
@@ -18,15 +18,15 @@ export function SideTable({ className = "" }: { className?: string }) {
       <path d="M14 17H90M104 17H186M20 23H140M60 28H178" stroke={WOOD.light} strokeWidth={1} opacity={0.6} />
       <path d="M30 20H120M132 25H184M16 26H52" stroke={WOOD.dark} strokeWidth={1} opacity={0.35} />
       {/* Marco de foto parado sobre la tabla (y = 10), con su soporte atrás a la derecha. */}
-      <path d="M114 -30L138 10H129L108 -24Z" fill={FRAME.wood} stroke={FRAME.edge} strokeWidth={1.5} strokeLinejoin="round" />
-      <ellipse cx={97} cy={11} rx={30} ry={2.5} fill={FRAME.line} opacity={0.25} />
-      <rect x={72} y={-54} width={50} height={64} rx={3} fill={FRAME.wood} stroke={FRAME.edge} strokeWidth={1.5} />
-      <svg x={79} y={-47} width={36} height={50} overflow="hidden">
-        <rect width={36} height={50} fill={FRAME.photo} />
-        <path d="M5 50C5 33 31 33 31 50Z" fill={FRAME.body} />
-        <circle cx={18} cy={22} r={8} fill={FRAME.head} stroke={FRAME.line} strokeWidth={0.75} />
+      <path d="M127 -50L156 10H146L119 -42Z" fill={FRAME.wood} stroke={FRAME.edge} strokeWidth={1.5} strokeLinejoin="round" />
+      <ellipse cx={97} cy={11} rx={45} ry={3} fill={FRAME.line} opacity={0.25} />
+      <rect x={57} y={-91} width={80} height={101} rx={4} fill={FRAME.wood} stroke={FRAME.edge} strokeWidth={1.5} />
+      <svg x={66} y={-82} width={62} height={83} overflow="hidden">
+        <rect width={62} height={83} fill={FRAME.photo} />
+        <path d="M8 83C8 55 54 55 54 83Z" fill={FRAME.body} />
+        <circle cx={31} cy={37} r={13} fill={FRAME.head} stroke={FRAME.line} strokeWidth={0.75} />
       </svg>
-      <rect x={79} y={-47} width={36} height={50} fill="none" stroke={FRAME.edge} strokeWidth={1.5} />
+      <rect x={66} y={-82} width={62} height={83} fill="none" stroke={FRAME.edge} strokeWidth={1.5} />
     </svg>
   );
 }
