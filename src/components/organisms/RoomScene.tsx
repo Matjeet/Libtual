@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { PaintingFrame, type FrameShape } from "@/components/atoms/PaintingFrame";
 import { PaperBag } from "@/components/atoms/PaperBag";
 import { SideTable } from "@/components/atoms/SideTable";
 
@@ -13,8 +14,22 @@ const BOOKSHELF = 1;
 // Distancia mínima (px) del gesto para cambiar de panel; menos que esto es un toque o un temblor.
 const SWIPE = 40;
 
-// La habitación de la página de inicio: bolsa | estantería | mesa.
-// - Desde xl hay espacio a los lados: la bolsa y la mesa van junto a la estantería, apoyadas en el borde de abajo.
+// Dos cuadros colgados uno encima del otro, en el espacio libre sobre la bolsa o la mesa. Cada uno ocupa la mitad
+// del espacio y su SVG se escala sin deformarse (proporción fija), centrado en su caja.
+function Paintings({ shapes }: { shapes: [FrameShape, FrameShape] }) {
+  return (
+    // En paneles muy bajos (celular en horizontal) los cuadros serían diminutos: se ocultan y la bolsa o la mesa usan todo el alto.
+    <div className="flex min-h-0 w-full max-w-60 flex-1 flex-col items-center justify-center gap-4 py-4 xl:max-w-none xl:gap-6 [@container(max-height:20rem)]:hidden">
+      {shapes.map((shape) => (
+        <PaintingFrame key={shape} shape={shape} className="min-h-0 w-full flex-1" />
+      ))}
+    </div>
+  );
+}
+
+// La habitación de la página de inicio: bolsa | estantería | mesa, con dos cuadros sobre la bolsa y dos sobre la mesa.
+// - Desde xl hay espacio a los lados: la bolsa y la mesa van junto a la estantería, apoyadas en el borde de abajo,
+//   y sus columnas ocupan todo el alto para colgar los cuadros encima.
 // - Por debajo de xl es un carrusel como el de fotos: se ve un panel a la vez y un gesto (dedo o arrastre con el mouse)
 //   pasa al siguiente de golpe. Con mouse también hay flechas a los lados, y con teclado, las flechas del teclado.
 export function RoomScene({ children }: { children: ReactNode }) {
@@ -71,19 +86,21 @@ export function RoomScene({ children }: { children: ReactNode }) {
       >
         <div
           aria-hidden={index !== 0}
-          className={`flex w-full shrink-0 items-end justify-center [container-type:size] xl:absolute xl:bottom-0 xl:right-full xl:mr-(--side-gap) xl:block xl:[container-type:normal] ${SIDE_WIDTH}`}
+          className={`flex w-full shrink-0 flex-col items-center justify-end [container-type:size] xl:absolute xl:inset-y-0 xl:right-full xl:mr-(--side-gap) ${SIDE_WIDTH}`}
         >
+          <Paintings shapes={["oval", "portrait"]} />
           {/* Al pasar el mouse se comprime un poco desde la base (que está en el suelo) y se queda así mientras dure el hover.
-              Se limita también por el alto del panel (cqh) para no cortarse en pantallas bajas. */}
-          <PaperBag className="w-[min(16rem,80%,111cqh)] origin-bottom transition-transform duration-300 ease-out hover:scale-x-[1.04] hover:scale-y-[0.9] motion-reduce:transition-none xl:w-full" />
+              Por debajo de xl ocupa a lo sumo la mitad del alto del panel (cqh), para dejar lugar a los cuadros. */}
+          <PaperBag className="w-[min(16rem,80%,50cqh)] shrink-0 [@container(max-height:20rem)]:w-[min(16rem,80%,111cqh)] xl:[@container(max-height:20rem)]:w-full origin-bottom transition-transform duration-300 ease-out hover:scale-x-[1.04] hover:scale-y-[0.9] motion-reduce:transition-none xl:w-full" />
         </div>
         {/* Con mouse, margen a los lados para que las flechas (44 px) no tapen los postes ni los libros. */}
         <div className="flex w-full shrink-0 flex-col pointer-fine:px-12 xl:pointer-fine:px-0">{children}</div>
         <div
           aria-hidden={index !== 2}
-          className={`flex w-full shrink-0 items-end justify-center [container-type:size] xl:absolute xl:bottom-0 xl:left-full xl:ml-(--side-gap) xl:block xl:[container-type:normal] ${SIDE_WIDTH}`}
+          className={`flex w-full shrink-0 flex-col items-center justify-end [container-type:size] xl:absolute xl:inset-y-0 xl:left-full xl:ml-(--side-gap) ${SIDE_WIDTH}`}
         >
-          <SideTable className="w-[min(18rem,85%,107cqh)] xl:w-full" />
+          <Paintings shapes={["round", "landscape"]} />
+          <SideTable className="w-[min(18rem,85%,48cqh)] shrink-0 xl:w-full [@container(max-height:20rem)]:w-[min(18rem,85%,107cqh)] xl:[@container(max-height:20rem)]:w-full" />
         </div>
       </div>
 
