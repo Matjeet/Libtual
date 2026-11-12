@@ -77,7 +77,8 @@ export function RoomScene({ children }: { children: ReactNode }) {
               Se limita también por el alto del panel (cqh) para no cortarse en pantallas bajas. */}
           <PaperBag className="w-[min(16rem,80%,111cqh)] origin-bottom transition-transform duration-300 ease-out hover:scale-x-[1.04] hover:scale-y-[0.9] motion-reduce:transition-none xl:w-full" />
         </div>
-        <div className="flex w-full shrink-0 flex-col">{children}</div>
+        {/* Con mouse, margen a los lados para que las flechas (44 px) no tapen los postes ni los libros. */}
+        <div className="flex w-full shrink-0 flex-col pointer-fine:px-12 xl:pointer-fine:px-0">{children}</div>
         <div
           aria-hidden={index !== 2}
           className={`flex w-full shrink-0 items-end justify-center [container-type:size] xl:absolute xl:bottom-0 xl:left-full xl:ml-(--side-gap) xl:block xl:[container-type:normal] ${SIDE_WIDTH}`}
