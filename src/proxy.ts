@@ -31,7 +31,8 @@ export async function proxy(request: NextRequest) {
   if (!isAuthenticated && pathname.startsWith("/inicio")) {
     return NextResponse.redirect(new URL("/ingresar", request.url));
   }
-  if (isAuthenticated && (pathname.startsWith("/registro") || pathname.startsWith("/ingresar"))) {
+  // Con sesión, la entrada a la aplicación es /inicio: la raíz, el registro y el login son solo para visitantes.
+  if (isAuthenticated && (pathname === "/" || pathname.startsWith("/registro") || pathname.startsWith("/ingresar"))) {
     return NextResponse.redirect(new URL("/inicio", request.url));
   }
 
