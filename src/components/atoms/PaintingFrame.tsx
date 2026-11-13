@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 // Marcos de cuadro colgados en la pared, con detalles como los marcos tallados: borde de perlas, banda tallada
 // y biseles. Cada forma tiene su proporción fija (viewBox): el SVG se escala entero y nunca se deforma en una sola
 // dimensión, porque más adelante estos marcos contendrán imágenes. El área de la imagen por ahora es un lienzo vacío.
@@ -10,21 +12,18 @@ const CANVAS = "#efe6d2";
 // Perlas: un trazo punteado de puntos redondos sobre el borde.
 const beads = { fill: "none", strokeWidth: 1.6, strokeDasharray: "0 3.4", strokeLinecap: "round" } as const;
 
-export function PaintingFrame({ shape, className = "" }: { shape: FrameShape; className?: string }) {
-  const common = { "aria-hidden": true, className, "data-shape": shape } as const;
+export function PaintingFrame({ shape, className = "", style }: { shape: FrameShape; className?: string; style?: CSSProperties }) {
+  const common = { "aria-hidden": true, className, style, "data-shape": shape } as const;
 
   if (shape === "oval") {
+    // Óvalo liso: sin borde ondulado ni relieve, solo biseles suaves.
     return (
       <svg viewBox="0 0 120 150" {...common}>
-        {/* Borde ondulado: círculos gruesos alrededor del óvalo. */}
-        <ellipse cx={60} cy={75} rx={56} ry={71} fill="none" stroke={GOLD.base} strokeWidth={6} strokeDasharray="0 7" strokeLinecap="round" />
-        <ellipse cx={60} cy={75} rx={54} ry={69} fill={GOLD.base} stroke={GOLD.deep} strokeWidth={1} />
-        <ellipse cx={60} cy={75} rx={49} ry={64} stroke={GOLD.light} {...beads} />
-        {/* Banda tallada: relieve con trazos claros sobre una banda oscura. */}
-        <ellipse cx={60} cy={75} rx={44} ry={59} fill="none" stroke={GOLD.dark} strokeWidth={6} />
-        <ellipse cx={60} cy={75} rx={44} ry={59} fill="none" stroke={GOLD.light} strokeWidth={6} strokeDasharray="2.5 3.5" opacity={0.55} />
-        <ellipse cx={60} cy={75} rx={39} ry={54} fill={GOLD.light} stroke={GOLD.deep} strokeWidth={0.8} />
-        <ellipse cx={60} cy={75} rx={36} ry={51} fill={CANVAS} stroke={GOLD.deep} strokeWidth={0.8} />
+        <ellipse cx={60} cy={75} rx={57} ry={72} fill={GOLD.base} stroke={GOLD.deep} strokeWidth={1.2} />
+        <ellipse cx={60} cy={75} rx={53} ry={68} fill="none" stroke={GOLD.light} strokeWidth={2} />
+        <ellipse cx={60} cy={75} rx={47} ry={62} fill="none" stroke={GOLD.dark} strokeWidth={5} />
+        <ellipse cx={60} cy={75} rx={42} ry={57} fill={GOLD.light} stroke={GOLD.deep} strokeWidth={0.8} />
+        <ellipse cx={60} cy={75} rx={38.5} ry={53.5} fill={CANVAS} stroke={GOLD.deep} strokeWidth={0.8} />
       </svg>
     );
   }
