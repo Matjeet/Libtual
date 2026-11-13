@@ -43,6 +43,13 @@
   /* Acciones destructivas (eliminar la cuenta): rojo vivo con texto blanco, igual en ambos modos (contraste 4.8:1). */
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
+  /* Página de inicio: fondo sólido de la paleta, igual en modo claro y oscuro (no se redefine abajo).
+     La madera de la estantería queda fuera de la paleta de marca. */
+  --room: var(--palette-3);
+  --wood: #5a3820;
+  --wood-edge: #3a2414;
+  /* Fondo de cada piso: madera muy oscura, como la parte de atrás de la estantería. */
+  --wood-back: #24160c;
 }
 
 /*
@@ -82,6 +89,10 @@
   --color-success: var(--success);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-room: var(--room);
+  --color-wood: var(--wood);
+  --color-wood-edge: var(--wood-edge);
+  --color-wood-back: var(--wood-back);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -205,4 +216,22 @@ body {
 .calendar .rdp-dropdown {
   background: var(--background);
   color: var(--foreground);
+}
+
+/*
+ * Vetas sutiles de madera para la estantería: líneas finas, claras y oscuras, a lo largo de la tabla.
+ * Los dos periodos distintos (7 y 11 px) hacen que las vetas no se vean repetidas.
+ */
+@utility wood-grain-x {
+  background-color: var(--wood);
+  background-image:
+    repeating-linear-gradient(180deg, rgb(255 255 255 / 0.06) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(180deg, rgb(0 0 0 / 0.14) 0 1px, transparent 1px 11px);
+}
+
+@utility wood-grain-y {
+  background-color: var(--wood);
+  background-image:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.06) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.14) 0 1px, transparent 1px 11px);
 }

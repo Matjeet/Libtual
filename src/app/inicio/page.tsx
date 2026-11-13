@@ -1,28 +1,21 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Skeleton } from "@/components/atoms/Skeleton";
-import { MainTemplate } from "@/components/templates/MainTemplate";
+import { Bookshelf } from "@/components/organisms/Bookshelf";
+import { BookshelfSkeleton } from "@/components/organisms/BookshelfSkeleton";
+import { RoomScene } from "@/components/organisms/RoomScene";
+import { RoomTemplate } from "@/components/templates/RoomTemplate";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Inicio | Libtual" };
 
 export default function HomePage() {
   return (
-    <MainTemplate>
-      <Suspense fallback={<HomeSkeleton />}>
+    <RoomTemplate>
+      <Suspense fallback={<BookshelfSkeleton />}>
         <AuthenticatedHome />
       </Suspense>
-    </MainTemplate>
-  );
-}
-
-function HomeSkeleton() {
-  return (
-    <div role="status" aria-busy="true">
-      <span className="sr-only">Cargando inicio</span>
-      <Skeleton className="h-10 w-40" />
-    </div>
+    </RoomTemplate>
   );
 }
 
@@ -32,5 +25,9 @@ async function AuthenticatedHome() {
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) redirect("/ingresar");
 
-  return <h1 className="text-4xl font-semibold tracking-tight">INICIO</h1>;
+  return (
+    <RoomScene>
+      <Bookshelf />
+    </RoomScene>
+  );
 }
