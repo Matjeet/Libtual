@@ -15,26 +15,27 @@ const BOOKSHELF = 1;
 // Distancia mínima (px) del gesto para cambiar de panel; menos que esto es un toque o un temblor.
 const SWIPE = 40;
 
+// Un cuadro de la pared y su tamaño: "width" multiplica su ancho respecto a la columna y "grow" es su parte del alto
+// disponible frente al otro cuadro.
+type Painting = { shape: FrameShape; width: number; grow: number };
+
 // Dos cuadros colgados uno encima del otro, en el espacio libre sobre la bolsa o la mesa. Su SVG se escala sin
-// deformarse (proporción fija), centrado en su caja. El cuadro "big" es más grande: recibe 3 partes del alto contra 1
-// de su compañero y puede ser hasta un 90 % más ancho que la columna, sin pasar del panel (100cqw).
+// deformarse (proporción fija), centrado en su caja. Cada uno puede ser más ancho que la columna según su "width",
+// sin pasar del panel (100cqw) ni, desde xl, del espacio libre de la pared menos 10 px.
 // Desde xl los cuadros se centran en todo el espacio libre de la pared (--side-free, alineado al lado de la estantería),
-// así el grande crece hacia afuera. Del lado de la estantería dejan 10 px más que la separación normal (pr/pl-2.5).
-function Paintings({ shapes, big, side }: { shapes: [FrameShape, FrameShape]; big: 0 | 1; side: "left" | "right" }) {
+// así los grandes crecen hacia afuera. Del lado de la estantería dejan 10 px más que la separación normal (pr/pl-2.5).
+function Paintings({ frames, side }: { frames: [Painting, Painting]; side: "left" | "right" }) {
   return (
     // En paneles muy bajos (celular en horizontal) los cuadros serían diminutos: se ocultan y la bolsa o la mesa usan todo el alto.
     <div
       className={`flex min-h-0 w-full max-w-60 flex-1 flex-col items-center justify-center gap-4 py-4 xl:w-(--side-free) xl:max-w-none xl:gap-6 [@container(max-height:20rem)]:hidden ${side === "left" ? "xl:self-end xl:pr-2.5" : "xl:self-start xl:pl-2.5"}`}
     >
-      {shapes.map((shape, i) => (
+      {frames.map(({ shape, width, grow }) => (
         <PaintingFrame
           key={shape}
           shape={shape}
-          className={
-            i === big
-              ? "min-h-0 w-[min(190%,100cqw)] max-w-none flex-[3] xl:w-[min(calc(var(--side-col)*1.9),calc(var(--side-free)-0.625rem))]"
-              : "min-h-0 w-full flex-1 xl:w-[min(var(--side-col),calc(var(--side-free)-0.625rem))]"
-          }
+          style={{ "--width": width, "--grow": grow } as CSSProperties}
+          className="min-h-0 w-[min(calc(100%*var(--width)),100cqw)] max-w-none flex-(--grow) xl:w-[min(calc(var(--side-col)*var(--width)),calc(var(--side-free)-0.625rem))]"
         />
       ))}
     </div>
@@ -104,7 +105,13 @@ export function RoomScene({ children }: { children: ReactNode }) {
           aria-hidden={index !== 0}
           className={`flex w-full shrink-0 flex-col items-center justify-end [container-type:size] xl:absolute xl:inset-y-0 xl:right-full xl:mr-(--side-gap) ${SIDE_WIDTH}`}
         >
-          <Paintings shapes={["oval", "portrait"]} big={1} side="left" />
+          <Paintings
+            frames={[
+              { shape: "oval", width: 1.1, grow: 1.1 },
+              { shape: "portrait", width: 1.9, grow: 3 },
+            ]}
+            side="left"
+          />
           {/* Al pasar el mouse se comprime un poco desde la base (que está en el suelo) y se queda así mientras dure el hover.
               Por debajo de xl ocupa a lo sumo la mitad del alto del panel (cqh), para dejar lugar a los cuadros. */}
           <PaperBag className="w-[min(16rem,80%,50cqh)] shrink-0 [@container(max-height:20rem)]:w-[min(16rem,80%,111cqh)] xl:[@container(max-height:20rem)]:w-full origin-bottom transition-transform duration-300 ease-out hover:scale-x-[1.04] hover:scale-y-[0.9] motion-reduce:transition-none xl:w-full" />
@@ -115,7 +122,13 @@ export function RoomScene({ children }: { children: ReactNode }) {
           aria-hidden={index !== 2}
           className={`flex w-full shrink-0 flex-col items-center justify-end [container-type:size] xl:absolute xl:inset-y-0 xl:left-full xl:ml-(--side-gap) ${SIDE_WIDTH}`}
         >
-          <Paintings shapes={["round", "landscape"]} big={0} side="right" />
+          <Paintings
+            frames={[
+              { shape: "round", width: 1.9, grow: 3 },
+              { shape: "landscape", width: 1, grow: 1 },
+            ]}
+            side="right"
+          />
           <SideTable className="w-[min(18rem,85%,48cqh)] shrink-0 xl:w-full [@container(max-height:20rem)]:w-[min(18rem,85%,107cqh)] xl:[@container(max-height:20rem)]:w-full" />
         </div>
       </div>
