@@ -119,8 +119,8 @@ export function ProfileMenu({ profile }: { profile: Profile }) {
           {/* Formulario con server action: cierra la sesión aunque el JavaScript aún no haya cargado. */}
           <form action={signOut} className="self-end">
             <Button type="submit" variant="ghost" className="gap-2">
-              <LogOut aria-hidden="true" className="size-5" />
               Cerrar sesión
+              <LogOut aria-hidden="true" className="size-5" />
             </Button>
           </form>
 
