@@ -86,7 +86,9 @@ export function RoomScene({ children }: { children: ReactNode }) {
       onKeyDown={onKeyDown}
       // --side-gap: separación entre la estantería y la bolsa/mesa desde xl. 1rem hasta 1536 px y luego crece hasta 6rem.
       // -mt-2 pt-2: el recorte deja 8 px de aire arriba (en pantallas muy bajas la estantería mínima es más alta).
-      className="relative -mt-2 flex min-h-0 flex-1 overflow-hidden pt-2 -outline-offset-4 [--side-gap:clamp(1rem,calc((100vw-96rem)/4+1rem),6rem)] [--side-free:calc((100vw-72rem)/2+3rem-var(--side-gap))] [--side-col:min(13rem,var(--side-free))] xl:overflow-visible"
+      // Entre 1280 y 1460 px la estantería mide el 90 % (la tira se angosta): el 5 % que libera a cada lado (3.2rem de los
+      // 64rem del contenido) se suma a --side-free para la bolsa, la mesa y los cuadros. Desde 1460 px vuelve al 100 %.
+      className="relative -mt-2 flex min-h-0 flex-1 overflow-hidden pt-2 -outline-offset-4 [--side-gap:clamp(1rem,calc((100vw-96rem)/4+1rem),6rem)] [--side-free:calc((100vw-72rem)/2+3rem-var(--side-gap))] xl:[--side-free:calc((100vw-72rem)/2+6.2rem-var(--side-gap))] min-[91.25rem]:[--side-free:calc((100vw-72rem)/2+3rem-var(--side-gap))] [--side-col:min(13rem,var(--side-free))] xl:overflow-visible"
     >
       {/* Tira con los tres paneles. Se mueve un panel completo (más el espacio entre paneles, que evita que asome
           el borde del vecino). touch-pan-y: el gesto horizontal lo manejan los eventos, no el navegador. */}
@@ -96,7 +98,7 @@ export function RoomScene({ children }: { children: ReactNode }) {
         onPointerUp={onPointerUp}
         onPointerCancel={() => (dragStart.current = null)}
         onDragStart={(event) => event.preventDefault()}
-        className="relative flex min-h-0 w-full flex-1 touch-pan-y gap-8 select-none transition-transform duration-300 ease-out translate-x-[calc(var(--slide)*-1*(100%+2rem))] motion-reduce:transition-none xl:translate-x-0 xl:gap-0 xl:transition-none"
+        className="relative flex min-h-0 w-full flex-1 touch-pan-y xl:mx-auto xl:max-w-[90%] min-[91.25rem]:max-w-none gap-8 select-none transition-transform duration-300 ease-out translate-x-[calc(var(--slide)*-1*(100%+2rem))] motion-reduce:transition-none xl:translate-x-0 xl:gap-0 xl:transition-none"
       >
         <div
           aria-hidden={index !== 0}
