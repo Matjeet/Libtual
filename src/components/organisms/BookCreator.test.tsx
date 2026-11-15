@@ -17,7 +17,8 @@ describe("BookCreator", () => {
     expect(dialog.querySelector(`path[fill="${BOOK.colors.cover}"]`)).toBeInTheDocument();
   });
 
-  test("se cierra con el botón o con un clic en el fondo, pero no con un clic en el libro", async () => {
+  test("desde sm se cierra con el botón o con un clic en el fondo, pero no con un clic en el libro", async () => {
+    vi.spyOn(window, "matchMedia").mockReturnValue({ matches: true } as MediaQueryList);
     const onClose = vi.fn();
     const user = userEvent.setup();
     const { rerender } = render(<BookCreator book={BOOK} onClose={onClose} />);
@@ -27,10 +28,22 @@ describe("BookCreator", () => {
     expect(onClose).not.toHaveBeenCalled();
     await user.click(dialog);
     expect(onClose).toHaveBeenCalledTimes(1);
+    vi.restoreAllMocks();
 
     rerender(<BookCreator book={{ ...BOOK }} onClose={onClose} />);
     await user.click(screen.getByRole("button", { name: "Cerrar" }));
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  test("en celular el fondo no cierra el libro (es para deslizar): solo la X", async () => {
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<BookCreator book={BOOK} onClose={onClose} />);
+
+    await user.click(screen.getByRole("dialog", { name: "Nuevo libro" }));
+    expect(onClose).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Cerrar" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   test("la página izquierda tiene el formulario y la derecha la descripción con su contador", async () => {
@@ -82,7 +95,9 @@ describe("BookCreator", () => {
   test("en celular es un carrusel: deslizar, las flechas o enfocar la otra página la muestran", async () => {
     const user = userEvent.setup();
     render(<BookCreator book={BOOK} onClose={() => {}} />);
-    const strip = screen.getByRole("dialog").querySelector(".touch-pan-y")!;
+    const dialog = screen.getByRole("dialog");
+    // La tira con las dos páginas; el gesto se puede hacer en cualquier parte del modal.
+    const strip = dialog.querySelector('[class*="translateX"]')!;
     const FORM = "[transform:translateX(25%)]";
     const COMMENT = "[transform:translateX(-25%)]";
     expect(strip).toHaveClass(FORM);
@@ -91,15 +106,15 @@ describe("BookCreator", () => {
     expect(commentPage).toHaveClass("opacity-0");
 
     // Un movimiento corto no pasa de página; deslizar a la izquierda muestra la descripción y a la derecha, el formulario.
-    fireEvent.pointerDown(strip, { clientX: 200 });
-    fireEvent.pointerUp(strip, { clientX: 190 });
+    fireEvent.pointerDown(dialog, { clientX: 200 });
+    fireEvent.pointerUp(dialog, { clientX: 190 });
     expect(strip).toHaveClass(FORM);
-    fireEvent.pointerDown(strip, { clientX: 220 });
-    fireEvent.pointerUp(strip, { clientX: 100 });
+    fireEvent.pointerDown(dialog, { clientX: 220 });
+    fireEvent.pointerUp(dialog, { clientX: 100 });
     expect(strip).toHaveClass(COMMENT);
     expect(commentPage).not.toHaveClass("opacity-0");
-    fireEvent.pointerDown(strip, { clientX: 100 });
-    fireEvent.pointerUp(strip, { clientX: 220 });
+    fireEvent.pointerDown(dialog, { clientX: 100 });
+    fireEvent.pointerUp(dialog, { clientX: 220 });
     expect(strip).toHaveClass(FORM);
 
     // Mover una barra de color no pasa de página.

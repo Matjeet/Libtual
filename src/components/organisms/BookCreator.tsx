@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode, type Ref } from "react";
 import { BookCover, BookPages } from "@/components/atoms/BookParts";
 import type { TakenBook } from "@/components/atoms/PaperBag";
 import { HslSliders } from "@/components/molecules/HslSliders";
@@ -16,6 +16,8 @@ const STATUSES = [
   { value: "reading", label: "Leyendo" },
   { value: "finished", label: "Terminado" },
 ];
+// Desde sm se ve el libro completo; por debajo, una página a la vez.
+const WIDE = "(min-width: 40rem)";
 // Distancia mínima (px) de un deslizamiento para pasar de página, como en el carrusel de la habitación.
 const SWIPE = 40;
 // Flechas para pasar de página: solo con mouse y en celular (con el dedo se desliza).
@@ -28,6 +30,8 @@ const ARROW =
   "absolute top-[calc(50%+1.5rem)] hidden size-11 -translate-y-1/2 items-center justify-center rounded-full bg-card text-foreground shadow-md ring-1 ring-foreground/10 transition hover:bg-surface pointer-fine:flex sm:pointer-fine:hidden";
 // Controles sobre el papel: mismos colores en modo claro y oscuro.
 const FIELD = "h-11 w-full min-w-0 rounded-md border border-(--ink)/30 bg-white/60 px-2 text-base outline-none transition focus:border-(--ink)";
+
+type Page = "form" | "comment";
 
 type BookCreatorProps = {
   // Libro que salió de la bolsa: dónde estaba en pantalla y sus colores; null = cerrado.
@@ -43,6 +47,9 @@ export function BookCreator({ book, onClose }: BookCreatorProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const flyRef = useRef<HTMLDivElement>(null);
   const backdropPress = useRef(false);
+  // En celulares se ve una página a la vez: el formulario o la descripción.
+  const [page, setPage] = useState<Page>("form");
+  const dragStart = useRef<number | null>(null);
 
   useEffect(() => {
     if (!book) return;
@@ -61,14 +68,32 @@ export function BookCreator({ book, onClose }: BookCreatorProps) {
     <dialog
       ref={dialogRef}
       aria-label="Nuevo libro"
-      onClose={onClose}
-      // El libro y el botón no cubren toda la pantalla: si el destino es el <dialog> mismo, se hizo clic en el fondo.
-      onPointerDown={(event) => (backdropPress.current = event.target === event.currentTarget)}
+      onClose={() => {
+        setPage("form");
+        onClose();
+      }}
+      // Carrusel en celular: deslizar en cualquier parte (dedo o arrastre con el mouse), también fuera del libro, pasa a la otra página.
+      // Las barras de color y los campos de texto usan el gesto horizontal: ahí no cuenta.
+      onPointerDown={(event) => {
+        // El libro y el botón no cubren toda la pantalla: si el destino es el <dialog> mismo, se tocó el fondo.
+        backdropPress.current = event.target === event.currentTarget;
+        dragStart.current = (event.target as Element).closest("input, textarea, select") ? null : event.clientX;
+      }}
+      onPointerUp={(event) => {
+        if (dragStart.current === null) return;
+        const distance = event.clientX - dragStart.current;
+        dragStart.current = null;
+        if (Math.abs(distance) >= SWIPE) setPage(distance < 0 ? "comment" : "form");
+      }}
+      onPointerCancel={() => (dragStart.current = null)}
+      onDragStart={(event) => event.preventDefault()}
       onClick={(event) => {
-        if (backdropPress.current && event.target === event.currentTarget) dialogRef.current?.close();
+        // En celular el fondo es para deslizar: solo se cierra con la X.
+        if (backdropPress.current && event.target === event.currentTarget && window.matchMedia(WIDE).matches) dialogRef.current?.close();
       }}
       // pt-16: el libro queda debajo del botón de cerrar. Flex centra el libro aunque sea más ancho que la pantalla (celular).
-      className="fixed inset-0 m-0 size-full max-h-none max-w-none items-center justify-center overflow-clip bg-transparent px-0 pb-4 pt-16 backdrop:bg-black/40 open:flex motion-safe:backdrop:animate-[fade-in_0.4s_ease-out_both]"
+      // touch-pan-y: el gesto horizontal lo manejan los eventos; el vertical sigue haciendo scroll del formulario.
+      className="fixed inset-0 m-0 size-full max-h-none max-w-none touch-pan-y items-center justify-center overflow-clip bg-transparent px-0 pb-4 pt-16 backdrop:bg-black/40 open:flex motion-safe:backdrop:animate-[fade-in_0.4s_ease-out_both]"
     >
       <button
         type="button"
@@ -79,38 +104,22 @@ export function BookCreator({ book, onClose }: BookCreatorProps) {
         <X aria-hidden="true" className="size-6" />
       </button>
       {/* Se desmonta al cerrar: cada libro nuevo empieza con el formulario vacío. */}
-      {book && <OpenBook book={book} ref={flyRef} />}
+      {book && <OpenBook book={book} page={page} onPage={setPage} ref={flyRef} />}
     </dialog>
   );
 }
 
-function OpenBook({ book, ref }: { book: TakenBook; ref: Ref<HTMLDivElement> }) {
+function OpenBook({ book, page, onPage: setPage, ref }: { book: TakenBook; page: Page; onPage: (page: Page) => void; ref: Ref<HTMLDivElement> }) {
   // null = todavía el color del libro de la bolsa (con su lomo y bordes originales).
   const [cover, setCover] = useState<Hsl | null>(null);
   const [titleColor, setTitleColor] = useState(TITLE_COLOR);
   const [titleFont, setTitleFont] = useState<BookFont>("playfair");
   const [descriptionFont, setDescriptionFont] = useState<BookFont>("lora");
   const [comment, setComment] = useState("");
-  // En celulares se ve una página a la vez: el formulario o la descripción.
-  const [page, setPage] = useState<"form" | "comment">("form");
-  const dragStart = useRef<number | null>(null);
   const commentId = useId();
   const coverHsl = cover ?? hexToHsl(book.colors.cover);
   const darker = (by: number) => hslColor({ ...coverHsl, l: Math.max(coverHsl.l - by, 0) });
   const colors = cover ? { ...book.colors, cover: hslColor(cover), spine: darker(13), line: darker(18) } : book.colors;
-
-  // Carrusel en celular: deslizar (dedo o arrastre con el mouse) pasa a la otra página.
-  // Las barras de color y los campos de texto usan el gesto horizontal: ahí no cuenta.
-  function onPointerDown(event: PointerEvent) {
-    dragStart.current = (event.target as Element).closest("input, textarea, select") ? null : event.clientX;
-  }
-
-  function onPointerUp(event: PointerEvent) {
-    if (dragStart.current === null) return;
-    const distance = event.clientX - dragStart.current;
-    dragStart.current = null;
-    if (Math.abs(distance) >= SWIPE) setPage(distance < 0 ? "comment" : "form");
-  }
 
   return (
     <>
@@ -122,14 +131,9 @@ function OpenBook({ book, ref }: { book: TakenBook; ref: Ref<HTMLDivElement> }) 
         className="h-[min(calc(100dvh-6rem),calc(var(--page)*4/3))] w-[calc(var(--page)*2)] shrink-0 [--page:min(100vw-2rem,28rem)] pointer-fine:[--page:min(100vw-8rem,28rem)] drop-shadow-[0_1.25rem_1.5rem_rgb(0_0_0/0.35)] sm:h-[min(calc(100dvh-5rem),calc(min(100vw-2rem,max((100dvh-5rem)*1.5,40rem))/1.5))] sm:w-[min(calc(100vw-2rem),max(calc((100dvh-5rem)*1.5),40rem))] motion-safe:animate-[book-fly_0.6s_cubic-bezier(0.3,0.7,0.3,1)_both]"
       >
         {/* En celular se corre un cuarto para centrar la página actual. Sin fill final para que la transición al pasar de página funcione.
-            touch-pan-y: el gesto horizontal lo manejan los eventos; el vertical sigue haciendo scroll del formulario.
             Al enfocar un campo de la otra página (con Tab) se pasa a esa página. */}
         <div
-          onPointerDown={onPointerDown}
-          onPointerUp={onPointerUp}
-          onPointerCancel={() => (dragStart.current = null)}
-          onDragStart={(event) => event.preventDefault()}
-          className={`relative size-full touch-pan-y perspective-[200rem] transition-transform duration-500 ease-in-out motion-reduce:transition-none sm:[transform:none] motion-safe:animate-[book-center_0.7s_ease-in-out_0.6s_backwards] ${page === "form" ? "[transform:translateX(25%)]" : "[transform:translateX(-25%)]"}`}
+          className={`relative size-full perspective-[200rem] transition-transform duration-500 ease-in-out motion-reduce:transition-none sm:[transform:none] motion-safe:animate-[book-center_0.7s_ease-in-out_0.6s_backwards] ${page === "form" ? "[transform:translateX(25%)]" : "[transform:translateX(-25%)]"}`}
         >
           <BookPages colors={colors} className="absolute inset-y-0 right-0 h-full w-1/2" />
           {/* Tapa: gira sobre el lomo. Por fuera es la tapa del libro cerrado; por dentro, la mitad izquierda del libro abierto. */}
