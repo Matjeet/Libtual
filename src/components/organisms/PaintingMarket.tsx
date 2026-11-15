@@ -93,7 +93,7 @@ export function PaintingMarket({ frame, current, onClose }: PaintingMarketProps)
       onClick={(event) => {
         if (backdropPress.current && event.target === event.currentTarget && !saving) close();
       }}
-      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl flex-col overflow-hidden rounded-2xl bg-card p-0 text-foreground shadow-xl backdrop:bg-black/40 backdrop:backdrop-blur-sm open:flex motion-safe:animate-[back-in-down_0.3s_ease-out_both] motion-safe:data-closing:animate-[back-out-down_0.3s_ease-in_both]"
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl flex-col overflow-hidden rounded-2xl bg-card p-0 text-foreground shadow-xl backdrop:bg-black/40 backdrop:backdrop-blur-sm open:flex motion-safe:animate-[bounce-in-down_0.3s_both] motion-safe:data-closing:animate-[bounce-out-down_0.3s_both]"
     >
       <header className="flex items-start justify-between gap-4 border-b border-foreground/10 px-5 py-4 sm:px-6">
         <div>
