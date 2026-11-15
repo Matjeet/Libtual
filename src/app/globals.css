@@ -146,34 +146,46 @@ body {
   }
 }
 
-/* Mercado de arte (PaintingMarket): entra cayendo desde arriba (backInDown) y sale hacia abajo (backOutDown). */
-@keyframes back-in-down {
-  0% {
-    opacity: 0.7;
-    transform: translateY(-100vh) scale(0.7);
+/* Mercado de arte (PaintingMarket): entra cayendo desde arriba con rebote (bounceInDown) y sale hacia abajo (bounceOutDown). */
+@keyframes bounce-in-down {
+  0%,
+  60%,
+  75%,
+  90%,
+  100% {
+    animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   }
-  80% {
-    opacity: 0.7;
-    transform: translateY(0) scale(0.7);
+  0% {
+    opacity: 0;
+    transform: translateY(-3000px) scaleY(3);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(25px) scaleY(0.9);
+  }
+  75% {
+    transform: translateY(-10px) scaleY(0.95);
+  }
+  90% {
+    transform: translateY(5px) scaleY(0.985);
   }
   100% {
-    opacity: 1;
-    transform: scale(1);
+    transform: translateY(0);
   }
 }
 
-@keyframes back-out-down {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
+@keyframes bounce-out-down {
   20% {
-    opacity: 0.7;
-    transform: translateY(0) scale(0.7);
+    transform: translateY(10px) scaleY(0.985);
+  }
+  40%,
+  45% {
+    opacity: 1;
+    transform: translateY(-20px) scaleY(0.9);
   }
   100% {
-    opacity: 0.7;
-    transform: translateY(100vh) scale(0.7);
+    opacity: 0;
+    transform: translateY(2000px) scaleY(3);
   }
 }
 
