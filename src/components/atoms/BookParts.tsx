@@ -2,7 +2,7 @@ import { useId } from "react";
 
 // Partes de un libro abierto visto desde arriba, como la referencia: tapa gruesa que asoma por los bordes,
 // el bloque de hojas con sus cantos a los lados y abajo, y la hoja de arriba con sombra junto al lomo.
-// Cada parte es media página (proporción 3:4), con el lomo a la izquierda. Decorativas.
+// Cada parte es media página (dibujada en 3:4, se estira a la forma de la página), con el lomo a la izquierda. Decorativas.
 
 export type BookColors = { cover: string; spine: string; band: string; line: string };
 
@@ -13,7 +13,7 @@ const PAPER = { edge: "#efe3d0", lines: "#d8c8b0", border: "#cdbca3", spine: "#d
 // Tapa de adelante: la que se ve con el libro cerrado.
 export function BookCover({ colors, className = "" }: { colors: BookColors; className?: string }) {
   return (
-    <svg viewBox={VIEW_BOX} aria-hidden="true" className={className}>
+    <svg viewBox={VIEW_BOX} preserveAspectRatio="none" aria-hidden="true" className={className}>
       <path d={COVER} fill={colors.cover} stroke={colors.line} strokeWidth={1.5} strokeLinejoin="round" />
       <path d="M0 4H9V128H0Z" fill={colors.spine} />
       <path d="M9 22H94M9 30H94" stroke={colors.band} strokeWidth={3} />
@@ -27,7 +27,7 @@ export function BookCover({ colors, className = "" }: { colors: BookColors; clas
 export function BookPages({ colors, mirrored = false, className = "" }: { colors: BookColors; mirrored?: boolean; className?: string }) {
   const shade = `book-shade-${useId().replace(/:/g, "")}`;
   return (
-    <svg viewBox={VIEW_BOX} aria-hidden="true" className={className}>
+    <svg viewBox={VIEW_BOX} preserveAspectRatio="none" aria-hidden="true" className={className}>
       <defs>
         <linearGradient id={shade} x1="0" x2="1" y1="0" y2="0">
           <stop offset="0" stopColor={PAPER.spine} />
