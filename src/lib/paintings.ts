@@ -11,6 +11,14 @@ export const PAINTING_BUCKETS: Record<FrameShape, string> = {
   landscape: "painting-landscape",
 };
 
+// Los cuadros en el orden en que se muestran en el mercado (primero los de la bolsa, luego los de la mesa).
+export const PAINTING_FRAMES: { shape: FrameShape; name: string; place: string }[] = [
+  { shape: "oval", name: "Cuadro ovalado", place: "Arriba, sobre la bolsa" },
+  { shape: "portrait", name: "Cuadro vertical", place: "Abajo, sobre la bolsa" },
+  { shape: "round", name: "Cuadro redondo", place: "Arriba, sobre la mesa" },
+  { shape: "landscape", name: "Cuadro horizontal", place: "Abajo, sobre la mesa" },
+];
+
 // URL pública de la imagen de cada cuadro del usuario. Un cuadro sin imagen no aparece.
 export type PaintingImages = Partial<Record<FrameShape, string>>;
 
