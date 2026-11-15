@@ -5,6 +5,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEve
 import { PaintingFrame, type FrameShape } from "@/components/atoms/PaintingFrame";
 import { PaperBag } from "@/components/atoms/PaperBag";
 import { SideTable } from "@/components/atoms/SideTable";
+import type { PaintingImages } from "@/lib/paintings";
 
 // Desde xl (variables definidas en la escena):
 // --side-free: espacio libre al lado de la estantería, menos la separación y 1rem de margen con el borde de la pantalla.
@@ -24,7 +25,7 @@ type Painting = { shape: FrameShape; width: number; grow: number };
 // sin pasar del panel (100cqw) ni, desde xl, del espacio libre de la pared menos 10 px.
 // Desde xl los cuadros se centran en todo el espacio libre de la pared (--side-free, alineado al lado de la estantería),
 // así los grandes crecen hacia afuera. Del lado de la estantería dejan 10 px más que la separación normal (pr/pl-2.5).
-function Paintings({ frames, side }: { frames: [Painting, Painting]; side: "left" | "right" }) {
+function Paintings({ frames, side, images }: { frames: [Painting, Painting]; side: "left" | "right"; images: PaintingImages }) {
   return (
     // En paneles muy bajos (celular en horizontal) los cuadros serían diminutos: se ocultan y la bolsa o la mesa usan todo el alto.
     <div
@@ -34,6 +35,7 @@ function Paintings({ frames, side }: { frames: [Painting, Painting]; side: "left
         <PaintingFrame
           key={shape}
           shape={shape}
+          imageUrl={images[shape]}
           style={{ "--width": width, "--grow": grow } as CSSProperties}
           className="min-h-0 w-[min(calc(100%*var(--width)),100cqw)] max-w-none flex-(--grow) xl:w-[min(calc(var(--side-col)*var(--width)),calc(var(--side-free)-0.625rem))]"
         />
@@ -47,7 +49,8 @@ function Paintings({ frames, side }: { frames: [Painting, Painting]; side: "left
 //   y sus columnas ocupan todo el alto para colgar los cuadros encima.
 // - Por debajo de xl es un carrusel como el de fotos: se ve un panel a la vez y un gesto (dedo o arrastre con el mouse)
 //   pasa al siguiente de golpe. Con mouse también hay flechas a los lados, y con teclado, las flechas del teclado.
-export function RoomScene({ children }: { children: ReactNode }) {
+// paintings: URL de la imagen de cada cuadro del usuario; los cuadros sin imagen muestran el lienzo vacío.
+export function RoomScene({ children, paintings = {} }: { children: ReactNode; paintings?: PaintingImages }) {
   const [index, setIndex] = useState(BOOKSHELF);
   const dragStart = useRef<number | null>(null);
 
@@ -111,6 +114,7 @@ export function RoomScene({ children }: { children: ReactNode }) {
               { shape: "portrait", width: 1.9, grow: 3 },
             ]}
             side="left"
+            images={paintings}
           />
           {/* Al pasar el mouse se comprime un poco desde la base (que está en el suelo) y se queda así mientras dure el hover.
               Por debajo de xl ocupa a lo sumo la mitad del alto del panel (cqh), para dejar lugar a los cuadros. */}
@@ -128,6 +132,7 @@ export function RoomScene({ children }: { children: ReactNode }) {
               { shape: "landscape", width: 1, grow: 1 },
             ]}
             side="right"
+            images={paintings}
           />
           <SideTable className="w-[min(18rem,85%,48cqh)] shrink-0 xl:w-full [@container(max-height:20rem)]:w-[min(18rem,85%,107cqh)] xl:[@container(max-height:20rem)]:w-full" />
         </div>
