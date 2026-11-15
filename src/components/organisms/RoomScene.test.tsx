@@ -1,7 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { RoomScene } from "./RoomScene";
+
+// El mercado se prueba aparte: aquí solo importa que se abra con el cuadro elegido.
+vi.mock("@/components/organisms/PaintingMarket", () => ({
+  PaintingMarket: ({ frame }: { frame: string | null }) => (frame ? <p>mercado abierto en {frame}</p> : null),
+}));
 
 function setup() {
   render(
@@ -60,5 +65,23 @@ describe("RoomScene", () => {
     fireEvent.keyDown(scene, { key: "ArrowLeft" });
     fireEvent.keyDown(scene, { key: "ArrowLeft" });
     expect(slide()).toBe("0");
+  });
+});
+
+describe("RoomScene: cuadros", () => {
+  test("hacer clic en un cuadro abre el mercado en ese cuadro", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "Elegir la imagen del cuadro redondo" }));
+    expect(screen.getByText("mercado abierto en round")).toBeInTheDocument();
+  });
+
+  test("un deslizamiento que empieza en un cuadro cambia de panel pero no abre el mercado", () => {
+    const { slide } = setup();
+    const frame = screen.getByRole("button", { name: "Elegir la imagen del cuadro ovalado" });
+    fireEvent.pointerDown(frame, { clientX: 100 });
+    fireEvent.pointerUp(frame, { clientX: 220 });
+    fireEvent.click(frame);
+    expect(slide()).toBe("0");
+    expect(screen.queryByText(/mercado abierto/)).not.toBeInTheDocument();
   });
 });
