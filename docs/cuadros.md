@@ -32,7 +32,7 @@ Si cambia el tamaño o la forma de los cuadros (`src/components/atoms/PaintingFr
 
 ## Formato de los archivos
 
-- **Formatos:** WebP (recomendado), JPEG o PNG.
+- **Formato:** solo WebP. Los buckets rechazan cualquier otro tipo de archivo y la base de datos solo acepta nombres que terminen en `.webp`.
 - **Peso:** hasta 2 MB por imagen, que es el límite de los buckets. Con las resoluciones de arriba, un WebP suele pesar menos de 200 KB.
 - **Nombre:** cada imagen se guarda en el bucket de su cuadro. El nombre es libre, sin espacios ni tildes; por ejemplo `bosque-otono.webp`.
 
