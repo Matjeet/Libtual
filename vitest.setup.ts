@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { afterEach, vi } from "vitest";
 
 // Sin globals de Vitest, Testing Library no limpia el DOM sola entre tests.
 afterEach(cleanup);
@@ -34,3 +34,9 @@ if (typeof window !== "undefined" && !window.matchMedia) {
       dispatchEvent: () => false,
     }) as MediaQueryList;
 }
+
+// next/font solo funciona dentro de Next: en los tests cada fuente devuelve su nombre como familia.
+vi.mock("next/font/google", () => {
+  const font = (name: string) => () => ({ className: "", variable: "", style: { fontFamily: name } });
+  return { Caveat: font("Caveat"), Cinzel: font("Cinzel"), Lora: font("Lora"), Playfair_Display: font("Playfair Display"), Special_Elite: font("Special Elite") };
+});
