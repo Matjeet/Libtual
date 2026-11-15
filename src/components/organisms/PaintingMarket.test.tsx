@@ -29,7 +29,7 @@ describe("PaintingMarket", () => {
     render(<PaintingMarket frame="round" current={{}} onClose={() => {}} />);
     expect(screen.getByRole("status")).toHaveTextContent("Cargando las imágenes del mercado");
 
-    const market = await screen.findByRole("dialog", { name: "Mercado de imágenes" });
+    const market = await screen.findByRole("dialog", { name: "Mercado de arte" });
     await screen.findByRole("heading", { name: "Cuadro ovalado" });
     for (const name of ["Cuadro ovalado", "Cuadro vertical", "Cuadro redondo", "Cuadro horizontal"]) {
       expect(within(market).getByRole("heading", { name })).toBeInTheDocument();
@@ -52,6 +52,28 @@ describe("PaintingMarket", () => {
 
     expect(actions.choosePainting).toHaveBeenCalledWith("landscape", "landscape-cuadros.webp");
     expect(onClose).toHaveBeenCalled();
+  });
+
+  test("al cerrar espera a que termine la animación de salida", async () => {
+    let finish!: () => void;
+    const finished = new Promise<void>((resolve) => (finish = resolve));
+    const getAnimations = vi.fn(() => [{ finished }] as unknown as Animation[]);
+    HTMLElement.prototype.getAnimations = getAnimations;
+    try {
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+      render(<PaintingMarket frame="oval" current={{}} onClose={onClose} />);
+      const market = await screen.findByRole("dialog", { name: "Mercado de arte" });
+      await user.click(screen.getByRole("button", { name: "Cerrar" }));
+
+      expect(market).toHaveAttribute("data-closing");
+      expect(onClose).not.toHaveBeenCalled();
+      finish();
+      await vi.waitFor(() => expect(onClose).toHaveBeenCalled());
+      expect(market).not.toHaveAttribute("data-closing");
+    } finally {
+      delete (HTMLElement.prototype as Partial<HTMLElement>).getAnimations;
+    }
   });
 
   test("si no se puede guardar, muestra el error y sigue abierto", async () => {
