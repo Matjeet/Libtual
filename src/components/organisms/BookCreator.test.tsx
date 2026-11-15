@@ -79,18 +79,44 @@ describe("BookCreator", () => {
     expect(screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" }).style.fontFamily).toBe("Cinzel");
   });
 
-  test("en celular, el doblez de cada hoja pasa a la otra página y lleva el foco a su doblez", async () => {
+  test("en celular es un carrusel: deslizar, las flechas o enfocar la otra página la muestran", async () => {
     const user = userEvent.setup();
     render(<BookCreator book={BOOK} onClose={() => {}} />);
-    const comment = screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" });
-    expect(comment.parentElement).toHaveClass("invisible");
+    const strip = screen.getByRole("dialog").querySelector(".touch-pan-y")!;
+    const FORM = "[transform:translateX(25%)]";
+    const COMMENT = "[transform:translateX(-25%)]";
+    expect(strip).toHaveClass(FORM);
+    // La página que no está en pantalla no muestra sus controles (su borde asoma).
+    const commentPage = screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" }).parentElement;
+    expect(commentPage).toHaveClass("opacity-0");
 
-    await user.click(screen.getByRole("button", { name: "Pasar a la descripción" }));
-    expect(comment.parentElement).toHaveClass("visible");
-    expect(screen.getByRole("button", { name: "Volver al formulario" })).toHaveFocus();
+    // Un movimiento corto no pasa de página; deslizar a la izquierda muestra la descripción y a la derecha, el formulario.
+    fireEvent.pointerDown(strip, { clientX: 200 });
+    fireEvent.pointerUp(strip, { clientX: 190 });
+    expect(strip).toHaveClass(FORM);
+    fireEvent.pointerDown(strip, { clientX: 220 });
+    fireEvent.pointerUp(strip, { clientX: 100 });
+    expect(strip).toHaveClass(COMMENT);
+    expect(commentPage).not.toHaveClass("opacity-0");
+    fireEvent.pointerDown(strip, { clientX: 100 });
+    fireEvent.pointerUp(strip, { clientX: 220 });
+    expect(strip).toHaveClass(FORM);
 
-    await user.click(screen.getByRole("button", { name: "Volver al formulario" }));
-    expect(comment.parentElement).toHaveClass("invisible");
-    expect(screen.getByRole("button", { name: "Pasar a la descripción" })).toHaveFocus();
+    // Mover una barra de color no pasa de página.
+    const hue = screen.getAllByRole("slider")[0];
+    fireEvent.pointerDown(hue, { clientX: 220 });
+    fireEvent.pointerUp(hue, { clientX: 100 });
+    expect(strip).toHaveClass(FORM);
+
+    await user.click(screen.getByRole("button", { name: "Ver la descripción" }));
+    expect(strip).toHaveClass(COMMENT);
+    await user.click(screen.getByRole("button", { name: "Ver el formulario" }));
+    expect(strip).toHaveClass(FORM);
+
+    // Con el teclado: al enfocar un campo de la otra página se pasa a ella.
+    await user.click(screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" }));
+    expect(strip).toHaveClass(COMMENT);
+    await user.click(screen.getByRole("textbox", { name: "Autor" }));
+    expect(strip).toHaveClass(FORM);
   });
 });
