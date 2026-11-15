@@ -189,6 +189,33 @@ body {
   }
 }
 
+/* Nuevo libro (BookCreator): solo el punto de partida; cada animación termina en los estilos base del elemento.
+   book-fly parte del libro de la bolsa (posición, tamaño e inclinación en las variables --from-*). */
+@keyframes book-fly {
+  from {
+    transform: translate(var(--from-x), var(--from-y)) rotate(-8deg) scale(var(--from-sx), var(--from-sy));
+  }
+}
+
+/* Con la tapa cerrada solo se ve la mitad derecha: se corre un cuarto para que quede centrada. */
+@keyframes book-center {
+  from {
+    transform: translateX(-25%);
+  }
+}
+
+@keyframes book-open {
+  from {
+    transform: rotateY(0deg);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 /*
  * Calendario (DayPicker, usado en DateField): mismos tokens que el resto de la app.
  * Mobile-first: en celulares el calendario ocupa el ancho de la pantalla y los 7 días se reparten el espacio
