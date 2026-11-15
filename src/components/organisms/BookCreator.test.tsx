@@ -58,4 +58,39 @@ describe("BookCreator", () => {
     await user.type(comment, "Me encantó");
     expect(comment).toHaveAccessibleDescription("10/2000");
   });
+
+  test("las fuentes elegidas se ven en el nombre y en la descripción", async () => {
+    const user = userEvent.setup();
+    render(<BookCreator book={BOOK} onClose={() => {}} />);
+    const titleFont = screen.getByRole("combobox", { name: "Fuente del título" });
+    const descriptionFont = screen.getByRole("combobox", { name: "Fuente de la descripción" });
+    expect([...titleFont.querySelectorAll("option")].map((option) => option.textContent)).toEqual([
+      "Clásica",
+      "Elegante",
+      "Manuscrita",
+      "Máquina de escribir",
+      "Antigua",
+      "Moderna",
+    ]);
+
+    await user.selectOptions(titleFont, "Manuscrita");
+    expect(screen.getByRole("textbox", { name: "Nombre del libro" }).style.fontFamily).toBe("Caveat");
+    await user.selectOptions(descriptionFont, "Antigua");
+    expect(screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" }).style.fontFamily).toBe("Cinzel");
+  });
+
+  test("en celular, el doblez de cada hoja pasa a la otra página y lleva el foco a su doblez", async () => {
+    const user = userEvent.setup();
+    render(<BookCreator book={BOOK} onClose={() => {}} />);
+    const comment = screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" });
+    expect(comment.parentElement).toHaveClass("invisible");
+
+    await user.click(screen.getByRole("button", { name: "Pasar a la descripción" }));
+    expect(comment.parentElement).toHaveClass("visible");
+    expect(screen.getByRole("button", { name: "Volver al formulario" })).toHaveFocus();
+
+    await user.click(screen.getByRole("button", { name: "Volver al formulario" }));
+    expect(comment.parentElement).toHaveClass("invisible");
+    expect(screen.getByRole("button", { name: "Pasar a la descripción" })).toHaveFocus();
+  });
 });
