@@ -27,6 +27,7 @@ type PaintingMarketProps = {
 // Las imágenes cargan de forma diferida (loading="lazy"): solo se descargan las que están en pantalla.
 export function PaintingMarket({ frame, current, onClose }: PaintingMarketProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const backdropPress = useRef(false);
   const [catalog, setCatalog] = useState<MarketCatalog>();
   const [loadError, setLoadError] = useState<string>();
   const [saveError, setSaveError] = useState<string>();
@@ -85,6 +86,12 @@ export function PaintingMarket({ frame, current, onClose }: PaintingMarketProps)
       onCancel={(event) => {
         event.preventDefault();
         if (!saving) close();
+      }}
+      // El header y el contenido cubren todo el modal: si el destino es el <dialog> mismo, se hizo clic en el fondo.
+      // El clic también debe empezar ahí, para que soltar fuera una selección de texto no cierre el mercado.
+      onPointerDown={(event) => (backdropPress.current = event.target === event.currentTarget)}
+      onClick={(event) => {
+        if (backdropPress.current && event.target === event.currentTarget && !saving) close();
       }}
       className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl flex-col overflow-hidden rounded-2xl bg-card p-0 text-foreground shadow-xl backdrop:bg-black/40 backdrop:backdrop-blur-sm open:flex motion-safe:animate-[back-in-down_0.3s_ease-out_both] motion-safe:data-closing:animate-[back-out-down_0.3s_ease-in_both]"
     >

@@ -76,6 +76,18 @@ describe("PaintingMarket", () => {
     }
   });
 
+  test("hacer clic en el fondo cierra el mercado; un clic dentro no", async () => {
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<PaintingMarket frame="oval" current={{}} onClose={onClose} />);
+    const market = await screen.findByRole("dialog", { name: "Mercado de arte" });
+
+    await user.click(screen.getByRole("heading", { name: "Mercado de arte" }));
+    expect(onClose).not.toHaveBeenCalled();
+    await user.click(market);
+    expect(onClose).toHaveBeenCalled();
+  });
+
   test("si no se puede guardar, muestra el error y sigue abierto", async () => {
     actions.choosePainting.mockResolvedValue({ error: "Esa imagen ya no está disponible." });
     const onClose = vi.fn();
