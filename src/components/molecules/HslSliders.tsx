@@ -20,7 +20,7 @@ const CHANNELS = [
 
 // Barra transparente de 44 px de alto (área táctil) sobre el degradado; el círculo deja ver el color debajo.
 const RANGE =
-  "relative h-11 w-full cursor-pointer appearance-none rounded-full bg-transparent focus-visible:outline-2 focus-visible:outline-current [&::-moz-range-thumb]:size-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-transparent [&::-moz-range-thumb]:shadow-[0_0_0_1px_rgb(0_0_0/0.6)] [&::-moz-range-track]:bg-transparent [&::-webkit-slider-thumb]:size-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgb(0_0_0/0.6)]";
+  "relative h-11 w-full cursor-pointer appearance-none rounded-full bg-transparent focus-visible:outline-2 focus-visible:outline-current [&::-moz-range-thumb]:size-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-transparent [&::-moz-range-thumb]:shadow-[0_0_0_1px_rgb(0_0_0/0.6)] [&::-moz-range-track]:bg-transparent [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgb(0_0_0/0.6)]";
 
 type HslSlidersProps = {
   legend: string;
@@ -48,7 +48,7 @@ export function HslSliders({ legend, value, onChange, swatch, className = "" }: 
             <span className="sr-only"> ({name})</span>
           </label>
           <span className="relative">
-            <span aria-hidden="true" className="absolute inset-x-2.5 top-1/2 h-3 -translate-y-1/2 rounded-full ring-1 ring-black/15" style={{ background: track(value) }} />
+            <span aria-hidden="true" className="absolute inset-x-1.5 top-1/2 h-3 -translate-y-1/2 rounded-full ring-1 ring-black/15" style={{ background: track(value) }} />
             <input id={`${id}-${key}`} type="range" min={0} max={max} value={value[key]} onChange={(event) => onChange({ ...value, [key]: Number(event.target.value) })} className={RANGE} />
           </span>
         </div>
