@@ -146,6 +146,37 @@ body {
   }
 }
 
+/* Mercado de arte (PaintingMarket): entra cayendo desde arriba (backInDown) y sale hacia abajo (backOutDown). */
+@keyframes back-in-down {
+  0% {
+    opacity: 0.7;
+    transform: translateY(-100vh) scale(0.7);
+  }
+  80% {
+    opacity: 0.7;
+    transform: translateY(0) scale(0.7);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes back-out-down {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  20% {
+    opacity: 0.7;
+    transform: translateY(0) scale(0.7);
+  }
+  100% {
+    opacity: 0.7;
+    transform: translateY(100vh) scale(0.7);
+  }
+}
+
 /*
  * Calendario (DayPicker, usado en DateField): mismos tokens que el resto de la app.
  * Mobile-first: en celulares el calendario ocupa el ancho de la pantalla y los 7 días se reparten el espacio

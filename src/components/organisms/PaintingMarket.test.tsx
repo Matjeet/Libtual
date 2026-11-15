@@ -29,7 +29,7 @@ describe("PaintingMarket", () => {
     render(<PaintingMarket frame="round" current={{}} onClose={() => {}} />);
     expect(screen.getByRole("status")).toHaveTextContent("Cargando las imágenes del mercado");
 
-    const market = await screen.findByRole("dialog", { name: "Mercado de imágenes" });
+    const market = await screen.findByRole("dialog", { name: "Mercado de arte" });
     await screen.findByRole("heading", { name: "Cuadro ovalado" });
     for (const name of ["Cuadro ovalado", "Cuadro vertical", "Cuadro redondo", "Cuadro horizontal"]) {
       expect(within(market).getByRole("heading", { name })).toBeInTheDocument();
@@ -51,6 +51,40 @@ describe("PaintingMarket", () => {
     await user.click(await screen.findByRole("button", { name: "Usar landscape-cuadros en el cuadro horizontal" }));
 
     expect(actions.choosePainting).toHaveBeenCalledWith("landscape", "landscape-cuadros.webp");
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  test("al cerrar espera a que termine la animación de salida", async () => {
+    let finish!: () => void;
+    const finished = new Promise<void>((resolve) => (finish = resolve));
+    const getAnimations = vi.fn(() => [{ finished }] as unknown as Animation[]);
+    HTMLElement.prototype.getAnimations = getAnimations;
+    try {
+      const onClose = vi.fn();
+      const user = userEvent.setup();
+      render(<PaintingMarket frame="oval" current={{}} onClose={onClose} />);
+      const market = await screen.findByRole("dialog", { name: "Mercado de arte" });
+      await user.click(screen.getByRole("button", { name: "Cerrar" }));
+
+      expect(market).toHaveAttribute("data-closing");
+      expect(onClose).not.toHaveBeenCalled();
+      finish();
+      await vi.waitFor(() => expect(onClose).toHaveBeenCalled());
+      expect(market).not.toHaveAttribute("data-closing");
+    } finally {
+      delete (HTMLElement.prototype as Partial<HTMLElement>).getAnimations;
+    }
+  });
+
+  test("hacer clic en el fondo cierra el mercado; un clic dentro no", async () => {
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<PaintingMarket frame="oval" current={{}} onClose={onClose} />);
+    const market = await screen.findByRole("dialog", { name: "Mercado de arte" });
+
+    await user.click(screen.getByRole("heading", { name: "Mercado de arte" }));
+    expect(onClose).not.toHaveBeenCalled();
+    await user.click(market);
     expect(onClose).toHaveBeenCalled();
   });
 

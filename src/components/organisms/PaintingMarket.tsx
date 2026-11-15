@@ -23,10 +23,11 @@ type PaintingMarketProps = {
   onClose: () => void;
 };
 
-// Mercado de imágenes: un modal con todas las imágenes de los 4 buckets, en una sección por cuadro.
+// Mercado de arte: un modal con todas las imágenes de los 4 buckets, en una sección por cuadro.
 // Las imágenes cargan de forma diferida (loading="lazy"): solo se descargan las que están en pantalla.
 export function PaintingMarket({ frame, current, onClose }: PaintingMarketProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const backdropPress = useRef(false);
   const [catalog, setCatalog] = useState<MarketCatalog>();
   const [loadError, setLoadError] = useState<string>();
   const [saveError, setSaveError] = useState<string>();
@@ -54,12 +55,22 @@ export function PaintingMarket({ frame, current, onClose }: PaintingMarketProps)
     if (frame && catalog) document.getElementById(`market-${frame}`)?.scrollIntoView({ block: "start" });
   }, [frame, catalog]);
 
+  // Cierra después de la animación de salida; sin animación (movimiento reducido, tests) cierra al instante.
+  // data-closing se pone a mano para que un re-render de React no lo quite a mitad de la animación.
+  async function close() {
+    const dialog = dialogRef.current;
+    if (!dialog?.open || dialog.dataset.closing !== undefined) return;
+    dialog.dataset.closing = "";
+    await Promise.all(dialog.getAnimations?.().map((animation) => animation.finished.catch(() => {})) ?? []);
+    dialog.close();
+  }
+
   function choose(shape: FrameShape, path: string) {
     setSaveError(undefined);
     startSaving(async () => {
       const result = await choosePainting(shape, path);
       if (result.error) setSaveError(result.error);
-      else dialogRef.current?.close();
+      else close();
     });
   }
 
@@ -68,23 +79,33 @@ export function PaintingMarket({ frame, current, onClose }: PaintingMarketProps)
       ref={dialogRef}
       aria-labelledby="market-title"
       onClose={() => {
+        delete dialogRef.current?.dataset.closing;
         setSaveError(undefined);
         onClose();
       }}
-      onCancel={(event) => saving && event.preventDefault()}
-      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl flex-col overflow-hidden rounded-2xl bg-card p-0 text-foreground shadow-xl backdrop:bg-black/40 backdrop:backdrop-blur-sm open:flex"
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!saving) close();
+      }}
+      // El header y el contenido cubren todo el modal: si el destino es el <dialog> mismo, se hizo clic en el fondo.
+      // El clic también debe empezar ahí, para que soltar fuera una selección de texto no cierre el mercado.
+      onPointerDown={(event) => (backdropPress.current = event.target === event.currentTarget)}
+      onClick={(event) => {
+        if (backdropPress.current && event.target === event.currentTarget && !saving) close();
+      }}
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl flex-col overflow-hidden rounded-2xl bg-card p-0 text-foreground shadow-xl backdrop:bg-black/40 backdrop:backdrop-blur-sm open:flex motion-safe:animate-[back-in-down_0.3s_ease-out_both] motion-safe:data-closing:animate-[back-out-down_0.3s_ease-in_both]"
     >
       <header className="flex items-start justify-between gap-4 border-b border-foreground/10 px-5 py-4 sm:px-6">
         <div>
-          <h2 id="market-title" className="text-xl font-semibold">
-            Mercado de imágenes
+          <h2 id="market-title" className="text-2xl font-semibold sm:text-3xl">
+            Mercado de arte
           </h2>
           <p className="mt-1 text-foreground/80">Elige una imagen para cada cuadro de tu pared.</p>
         </div>
         <button
           type="button"
           aria-label="Cerrar"
-          onClick={() => dialogRef.current?.close()}
+          onClick={close}
           disabled={saving}
           className="inline-flex size-11 shrink-0 items-center justify-center rounded-full transition hover:bg-foreground/10 disabled:opacity-50"
         >
