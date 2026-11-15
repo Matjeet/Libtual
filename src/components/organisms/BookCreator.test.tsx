@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { BookCreator } from "./BookCreator";
@@ -31,5 +31,31 @@ describe("BookCreator", () => {
     rerender(<BookCreator book={{ ...BOOK }} onClose={onClose} />);
     await user.click(screen.getByRole("button", { name: "Cerrar" }));
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  test("la página izquierda tiene el formulario y la derecha la descripción con su contador", async () => {
+    const user = userEvent.setup();
+    render(<BookCreator book={BOOK} onClose={() => {}} />);
+
+    for (const name of ["Nombre del libro", "Autor"]) expect(screen.getByRole("textbox", { name })).toBeInTheDocument();
+    for (const name of ["Año", "Cantidad de páginas"]) expect(screen.getByRole("spinbutton", { name })).toBeInTheDocument();
+    const status = screen.getByRole("combobox", { name: "Estado" });
+    expect(status).toHaveValue("pending");
+    expect([...status.querySelectorAll("option")].map((option) => option.textContent)).toEqual(["Pendiente", "Leyendo", "Terminado"]);
+
+    // Barras HSL: empiezan en el color del libro que salió de la bolsa (#2f7a96 = hsl(196 52% 39%)).
+    const cover = screen.getByRole("group", { name: "Color de la pasta" });
+    const hue = screen.getAllByRole("slider", { name: /^H ?\(tono\)$/ })[0];
+    expect(cover).toContainElement(hue);
+    expect(hue).toHaveValue("196");
+    expect(screen.getByRole("group", { name: "Color del título" })).toBeInTheDocument();
+    fireEvent.change(hue, { target: { value: "10" } });
+    expect(document.querySelector('path[fill="hsl(10 52% 39%)"]')).toBeInTheDocument();
+
+    const comment = screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" });
+    expect(comment).toHaveAttribute("maxlength", "2000");
+    expect(comment).toHaveAccessibleDescription("0/2000");
+    await user.type(comment, "Me encantó");
+    expect(comment).toHaveAccessibleDescription("10/2000");
   });
 });
