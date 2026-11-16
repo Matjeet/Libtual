@@ -29,7 +29,8 @@ const PAGE_FADE_IN = "motion-safe:animate-[fade-in_0.4s_ease-out_1.3s_backwards]
 const ARROW =
   "absolute top-[calc(50%+1.5rem)] hidden size-11 -translate-y-1/2 items-center justify-center rounded-full bg-card text-foreground shadow-md ring-1 ring-foreground/10 transition hover:bg-surface pointer-fine:flex sm:pointer-fine:hidden";
 // Controles sobre el papel: mismos colores en modo claro y oscuro.
-const FIELD = "h-11 w-full min-w-0 rounded-md border border-(--ink)/30 bg-white/60 px-2 text-base outline-none transition focus:border-(--ink)";
+// En páginas anchas (libro grande) los campos crecen con la letra.
+const FIELD = "h-11 w-full min-w-0 rounded-md border border-(--ink)/30 bg-white/60 px-2 text-base outline-none transition focus:border-(--ink) @lg:h-12 @lg:px-3 @lg:text-lg";
 
 type Page = "form" | "comment";
 
@@ -148,7 +149,9 @@ function OpenBook({ book, page, onPage: setPage, ref }: { book: TakenBook; page:
             className={`absolute bottom-[10%] left-[5%] right-1/2 top-[6%] text-(--ink) scheme-light transition-opacity duration-500 sm:pointer-events-auto sm:opacity-100 ${PAGE_FADE_IN} ${page === "form" ? "" : OFF_PAGE}`}
           >
             <div className="size-full overflow-y-auto [scrollbar-width:thin] @container">
-              <div className="grid gap-3 p-2 @xs:grid-cols-2 sm:p-4">
+              {/* min-h-full + content-evenly: si sobra alto (libro grande), las filas se reparten en toda la página en vez de quedar arriba.
+                Cuando no cabe, no sobra espacio y la página hace scroll como siempre. */}
+            <div className="grid min-h-full content-evenly gap-3 p-2 text-sm @xs:grid-cols-2 sm:p-4 @lg:gap-x-6 @lg:text-base">
                 <Field label="Nombre del libro" className="@xs:col-span-2">
                   <input name="title" required maxLength={200} className={FIELD} style={{ fontFamily: fontFamily(titleFont) }} />
                 </Field>
@@ -253,7 +256,7 @@ function FontSelect({ name, value, onChange, forDescription = false }: { name: s
 
 function Field({ label, className = "", children }: { label: string; className?: string; children: ReactNode }) {
   return (
-    <label className={`flex min-w-0 flex-col gap-1 text-sm font-medium ${className}`}>
+    <label className={`flex min-w-0 flex-col gap-1 font-medium ${className}`}>
       {label}
       {children}
     </label>
