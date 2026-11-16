@@ -11,6 +11,7 @@ import { saveBook, type NewBook } from "@/lib/book-actions";
 import { BOOK_FONTS, FONT_GROUPS, fontFamily, type BookFont } from "@/lib/book-fonts";
 import { BOOK_STATUSES, bookCategory, type BookCategory } from "@/lib/books";
 import { hexToHsl, hslColor, hslToHex, type Hsl } from "@/lib/colors";
+import { useHorizontalSwipe } from "@/lib/use-horizontal-swipe";
 
 const COMMENT_MAX = 2000;
 // Letras claras, como un título dorado sobre la tapa.
@@ -55,6 +56,8 @@ export function BookCreator({ book, onClose, onSaved }: BookCreatorProps) {
   // En celulares se ve una página a la vez: el formulario o la descripción.
   const [page, setPage] = useState<Page>("form");
   const dragStart = useRef<number | null>(null);
+  // Sin esto, en Chrome para celular el primer toque después de deslizar no hace nada.
+  useHorizontalSwipe(dialogRef);
 
   useEffect(() => {
     if (!book) return;
