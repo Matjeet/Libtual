@@ -31,18 +31,18 @@ type HslSlidersProps = {
   className?: string;
 };
 
-// Selector de color con tres barras H, S y L.
+// Selector de color con tres barras H, S y L. El tamaño de letra lo hereda de quien lo usa.
 export function HslSliders({ legend, value, onChange, swatch, className = "" }: HslSlidersProps) {
   const id = useId();
   return (
     <fieldset className={`min-w-0 ${className}`}>
-      <legend className="flex items-center gap-2 text-sm font-medium">
+      <legend className="flex items-center gap-2 font-medium">
         {legend}
         {swatch ?? <span aria-hidden="true" className="size-5 rounded-full ring-1 ring-black/25" style={{ background: hslColor(value) }} />}
       </legend>
       {CHANNELS.map(({ key, name, max, track }) => (
         // La etiqueta no envuelve la barra: si no, su valor también entraría en el nombre accesible.
-        <div key={key} className="grid grid-cols-[1rem_1fr] items-center gap-1 text-sm font-medium">
+        <div key={key} className="grid grid-cols-[1.25em_1fr] items-center gap-1 font-medium">
           <label htmlFor={`${id}-${key}`}>
             {key.toUpperCase()}
             <span className="sr-only"> ({name})</span>
