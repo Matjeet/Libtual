@@ -68,7 +68,7 @@ export const FONT_GROUPS = ["Clásicas", "Modernas", "Manuscritas", "Máquina de
 type FontGroup = (typeof FONT_GROUPS)[number];
 type BookFontOption = { value: string; label: string; group: FontGroup; family: string; titleOnly?: boolean };
 
-// value es lo que se guarda en la base de datos (title_font y description_font).
+// value es lo que se guarda en la base de datos (title_font y comment_font).
 // titleOnly: se ve bien en un título pero cuesta leerla en un texto largo; no se ofrece para la descripción.
 export const BOOK_FONTS = [
   { value: "lora", label: "Lora", group: "Clásicas", family: lora.style.fontFamily },
