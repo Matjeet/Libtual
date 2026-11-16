@@ -115,7 +115,7 @@ function OpenBook({ book, page, onPage: setPage, ref }: { book: TakenBook; page:
   const [cover, setCover] = useState<Hsl | null>(null);
   const [titleColor, setTitleColor] = useState(TITLE_COLOR);
   const [titleFont, setTitleFont] = useState<BookFont>("playfair");
-  const [descriptionFont, setDescriptionFont] = useState<BookFont>("lora");
+  const [commentFont, setCommentFont] = useState<BookFont>("lora");
   const [comment, setComment] = useState("");
   const commentId = useId();
   const coverHsl = cover ?? hexToHsl(book.colors.cover);
@@ -183,7 +183,7 @@ function OpenBook({ book, page, onPage: setPage, ref }: { book: TakenBook; page:
                   <FontSelect name="title_font" value={titleFont} onChange={setTitleFont} />
                 </Field>
                 <Field label="Fuente de la descripción">
-                  <FontSelect name="description_font" value={descriptionFont} onChange={setDescriptionFont} forDescription />
+                  <FontSelect name="comment_font" value={commentFont} onChange={setCommentFont} forComment />
                 </Field>
                 <Field label="Estado" className="@xs:col-span-2">
                   <select name="status" defaultValue="pending" className={FIELD}>
@@ -212,7 +212,7 @@ function OpenBook({ book, page, onPage: setPage, ref }: { book: TakenBook; page:
               onChange={(event) => setComment(event.target.value)}
               aria-describedby={`${commentId}-count`}
               className="min-h-0 flex-1 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink)"
-              style={{ fontFamily: fontFamily(descriptionFont) }}
+              style={{ fontFamily: fontFamily(commentFont) }}
             />
             <p id={`${commentId}-count`} className="self-end text-sm">
               {comment.length}/{COMMENT_MAX}
@@ -234,9 +234,9 @@ function OpenBook({ book, page, onPage: setPage, ref }: { book: TakenBook; page:
 }
 
 // Lista de fuentes agrupada; cada nombre se escribe con su fuente (donde el navegador lo permite).
-// forDescription: sin las fuentes que solo sirven para títulos.
-function FontSelect({ name, value, onChange, forDescription = false }: { name: string; value: BookFont; onChange: (font: BookFont) => void; forDescription?: boolean }) {
-  const fonts = BOOK_FONTS.filter((font) => !(forDescription && "titleOnly" in font));
+// forComment: sin las fuentes que solo sirven para títulos.
+function FontSelect({ name, value, onChange, forComment = false }: { name: string; value: BookFont; onChange: (font: BookFont) => void; forComment?: boolean }) {
+  const fonts = BOOK_FONTS.filter((font) => !(forComment && "titleOnly" in font));
   return (
     <select name={name} value={value} onChange={(event) => onChange(event.target.value as BookFont)} className={FIELD} style={{ fontFamily: fontFamily(value) }}>
       {FONT_GROUPS.map((group) => (
