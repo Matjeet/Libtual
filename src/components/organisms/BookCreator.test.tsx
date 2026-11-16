@@ -3,6 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { BookCreator } from "./BookCreator";
 
+const saveBook = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/book-actions", () => ({ saveBook }));
+
 const BOOK = { x: 40, y: 500, width: 60, height: 100, colors: { cover: "#2f7a96", spine: "#1d5468", band: "#f2b632", line: "#174556" } };
 
 describe("BookCreator", () => {
@@ -135,5 +138,62 @@ describe("BookCreator", () => {
     expect(strip).toHaveClass(COMMENT);
     await user.click(screen.getByRole("textbox", { name: "Autor" }));
     expect(strip).toHaveClass(FORM);
+  });
+
+  test("Firmar guarda el libro, muestra la estantería y, con el libro ya en ella, cierra el modal", async () => {
+    // Lomo del libro nuevo en la estantería, como queda después del refresco.
+    const shelf = document.createElement("ul");
+    shelf.innerHTML = '<li data-book-id="book-1"><div></div></li>';
+    document.body.append(shelf);
+    saveBook.mockResolvedValue({ id: "book-1" });
+    const onClose = vi.fn();
+    const onSaved = vi.fn();
+    const user = userEvent.setup();
+    render(<BookCreator book={BOOK} onClose={onClose} onSaved={onSaved} />);
+
+    await user.type(screen.getByRole("textbox", { name: "Nombre del libro" }), "Rayuela");
+    await user.type(screen.getByRole("textbox", { name: "Autor" }), "Julio Cortázar");
+    await user.type(screen.getByRole("spinbutton", { name: "Año" }), "1963");
+    await user.type(screen.getByRole("spinbutton", { name: "Cantidad de páginas" }), "600");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Estado" }), "Leyendo");
+    await user.type(screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" }), "Un juego.");
+    const sign = screen.getByRole("button", { name: "Firmar" });
+    // Firmar + pluma, en ese orden.
+    expect(sign.textContent).toBe("Firmar");
+    expect(sign.lastElementChild?.tagName).toBe("svg");
+    await user.click(sign);
+
+    expect(saveBook).toHaveBeenCalledWith({
+      title: "Rayuela",
+      author: "Julio Cortázar",
+      year: 1963,
+      pages: 600,
+      coverColor: BOOK.colors.cover,
+      fontColor: "#faf0d1",
+      titleFont: "playfair",
+      commentFont: "lora",
+      status: "reading",
+      comment: "Un juego.",
+    });
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(onSaved).toHaveBeenCalled();
+    expect((shelf.querySelector("div") as HTMLElement).style.visibility).toBe("");
+    shelf.remove();
+  });
+
+  test("si no se puede guardar, muestra el error y deja firmar de nuevo", async () => {
+    saveBook.mockResolvedValue({ error: "No pudimos guardar tu libro. Intenta de nuevo." });
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<BookCreator book={BOOK} onClose={onClose} />);
+    await user.type(screen.getByRole("textbox", { name: "Nombre del libro" }), "Aura");
+    await user.type(screen.getByRole("textbox", { name: "Autor" }), "Carlos Fuentes");
+    await user.type(screen.getByRole("spinbutton", { name: "Año" }), "1962");
+    await user.type(screen.getByRole("spinbutton", { name: "Cantidad de páginas" }), "80");
+    await user.click(screen.getByRole("button", { name: "Firmar" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("No pudimos guardar tu libro. Intenta de nuevo.");
+    expect(screen.getByRole("button", { name: "Firmar" })).toBeEnabled();
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
