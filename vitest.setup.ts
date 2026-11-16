@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { afterEach, vi } from "vitest";
 
 // Sin globals de Vitest, Testing Library no limpia el DOM sola entre tests.
 afterEach(cleanup);
@@ -34,3 +34,15 @@ if (typeof window !== "undefined" && !window.matchMedia) {
       dispatchEvent: () => false,
     }) as MediaQueryList;
 }
+
+// next/font solo funciona dentro de Next: en los tests cada fuente devuelve su nombre como familia.
+vi.mock("next/font/google", () => {
+  // El nombre de cada función es el de la fuente con "_" en lugar de espacios (Playfair_Display → "Playfair Display").
+  const names = [
+    "Abril_Fatface", "Caveat", "Cinzel", "Cormorant_Garamond", "Courier_Prime", "Creepster", "Crimson_Pro", "Dancing_Script",
+    "EB_Garamond", "Great_Vibes", "IM_Fell_English", "Indie_Flower", "Josefin_Sans", "Libre_Baskerville", "Lobster", "Lora",
+    "Merriweather", "Montserrat", "Nunito", "Orbitron", "Pacifico", "Playfair_Display", "Quicksand", "Raleway", "Satisfy",
+    "Spectral", "Special_Elite", "Uncial_Antiqua", "UnifrakturMaguntia",
+  ];
+  return Object.fromEntries(names.map((name) => [name, () => ({ className: "", variable: "", style: { fontFamily: name.replaceAll("_", " ") } })]));
+});

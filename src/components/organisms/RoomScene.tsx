@@ -13,8 +13,9 @@ import {
   type ReactNode,
 } from "react";
 import { PaintingFrame, type FrameShape } from "@/components/atoms/PaintingFrame";
-import { PaperBag } from "@/components/atoms/PaperBag";
+import { PaperBag, type TakenBook } from "@/components/atoms/PaperBag";
 import { SideTable } from "@/components/atoms/SideTable";
+import { BookCreator } from "@/components/organisms/BookCreator";
 import { PaintingMarket } from "@/components/organisms/PaintingMarket";
 import { PAINTING_FRAMES, type PaintingImages } from "@/lib/paintings";
 
@@ -89,8 +90,10 @@ function Paintings({
 export function RoomScene({ children, paintings = {} }: { children: ReactNode; paintings?: PaintingImages }) {
   const [index, setIndex] = useState(BOOKSHELF);
   const [market, setMarket] = useState<FrameShape | null>(null);
+  // Libro que salió de la bolsa: abre la creación de un libro.
+  const [newBook, setNewBook] = useState<TakenBook | null>(null);
   const dragStart = useRef<number | null>(null);
-  // El último gesto fue un deslizamiento: el clic que lo sigue no debe abrir el mercado.
+  // El último gesto fue un deslizamiento: el clic que lo sigue no debe abrir el mercado ni sacar un libro.
   const swiped = useRef(false);
   const wide = useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches, () => false);
 
@@ -140,7 +143,7 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
         // -mt-2 pt-2: el recorte deja 8 px de aire arriba (en pantallas muy bajas la estantería mínima es más alta).
         // Entre 1280 y 1460 px la estantería mide el 80 % (la tira se angosta): el 10 % que libera a cada lado (6.4rem de los
         // 64rem del contenido) se suma a --side-free para la bolsa, la mesa y los cuadros. Desde 1460 px vuelve al 100 %.
-        className="relative -mt-2 flex min-h-0 flex-1 overflow-hidden pt-2 -outline-offset-4 [--side-gap:clamp(1rem,calc((100vw-96rem)/4+1rem),6rem)] [--side-free:calc((100vw-72rem)/2+3rem-var(--side-gap))] xl:[--side-free:calc((100vw-72rem)/2+9.4rem-var(--side-gap))] min-[91.25rem]:[--side-free:calc((100vw-72rem)/2+3rem-var(--side-gap))] [--side-col:min(13rem,var(--side-free))] xl:overflow-visible"
+        className="relative -mt-2 flex min-h-0 flex-1 overflow-x-clip pt-2 -outline-offset-4 [--side-gap:clamp(1rem,calc((100vw-96rem)/4+1rem),6rem)] [--side-free:calc((100vw-72rem)/2+3rem-var(--side-gap))] xl:[--side-free:calc((100vw-72rem)/2+9.4rem-var(--side-gap))] min-[91.25rem]:[--side-free:calc((100vw-72rem)/2+3rem-var(--side-gap))] [--side-col:min(13rem,var(--side-free))] xl:overflow-visible"
       >
         {/* Tira con los tres paneles. Se mueve un panel completo (más el espacio entre paneles, que evita que asome
             el borde del vecino). touch-pan-y: el gesto horizontal lo manejan los eventos, no el navegador. */}
@@ -168,7 +171,11 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
             />
             {/* Al pasar el mouse se comprime un poco desde la base (que está en el suelo) y se queda así mientras dure el hover.
                 Por debajo de xl ocupa a lo sumo la mitad del alto del panel (cqh), para dejar lugar a los cuadros. */}
-            <PaperBag className="w-[min(16rem,80%,50cqh)] shrink-0 [@container(max-height:20rem)]:w-[min(16rem,80%,111cqh)] xl:[@container(max-height:20rem)]:w-full origin-bottom transition-transform duration-300 ease-out hover:scale-x-[1.04] hover:scale-y-[0.9] motion-reduce:transition-none xl:w-full" />
+            <PaperBag
+              className="w-[min(16rem,80%,50cqh)] shrink-0 [@container(max-height:20rem)]:w-[min(16rem,80%,111cqh)] xl:[@container(max-height:20rem)]:w-full origin-bottom transition-transform duration-300 ease-out hover:scale-x-[1.04] hover:scale-y-[0.9] motion-reduce:transition-none xl:w-full"
+              taken={newBook !== null}
+              onTakeBook={setNewBook}
+            />
           </div>
           {/* Con mouse, margen a los lados para que las flechas (44 px) no tapen los postes ni los libros. */}
           <div inert={!wide && index !== BOOKSHELF} className="flex w-full shrink-0 flex-col pointer-fine:px-12 xl:pointer-fine:px-0">
@@ -215,6 +222,8 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
       </div>
       {/* Fuera de la región: así las flechas del teclado dentro del modal no mueven el carrusel. */}
       <PaintingMarket frame={market} current={paintings} onClose={() => setMarket(null)} />
+      {/* Al guardar el libro se muestra la estantería, adonde vuela el libro nuevo. */}
+      <BookCreator book={newBook} onClose={() => setNewBook(null)} onSaved={() => setIndex(BOOKSHELF)} />
     </>
   );
 }

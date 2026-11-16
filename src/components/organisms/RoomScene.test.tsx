@@ -7,6 +7,9 @@ import { RoomScene } from "./RoomScene";
 vi.mock("@/components/organisms/PaintingMarket", () => ({
   PaintingMarket: ({ frame }: { frame: string | null }) => (frame ? <p>mercado abierto en {frame}</p> : null),
 }));
+vi.mock("@/components/organisms/BookCreator", () => ({
+  BookCreator: ({ book }: { book: object | null }) => (book ? <p>creando un libro</p> : null),
+}));
 
 function setup() {
   render(
@@ -83,5 +86,14 @@ describe("RoomScene: cuadros", () => {
     fireEvent.click(frame);
     expect(slide()).toBe("0");
     expect(screen.queryByText(/mercado abierto/)).not.toBeInTheDocument();
+  });
+});
+
+describe("RoomScene: bolsa", () => {
+  test("hacer clic en la bolsa saca un libro y abre su creación", async () => {
+    setup();
+    expect(screen.queryByText("creando un libro")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Agregar un libro" }));
+    expect(await screen.findByText("creando un libro")).toBeInTheDocument();
   });
 });
