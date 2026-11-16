@@ -20,6 +20,42 @@ export const BOOK_STATUSES = [
   { value: "finished", label: "Terminado" },
 ] as const;
 
+// Géneros sugeridos en el formulario; el usuario también puede escribir uno que no esté en la lista.
+export const BOOK_GENRES = [
+  "Novela",
+  "Cuento",
+  "Poesía",
+  "Teatro",
+  "Fantasía",
+  "Ciencia ficción",
+  "Distopía",
+  "Terror",
+  "Misterio",
+  "Policiaca",
+  "Thriller",
+  "Romance",
+  "Novela histórica",
+  "Aventura",
+  "Realismo mágico",
+  "Humor",
+  "Clásico",
+  "Infantil",
+  "Juvenil",
+  "Cómic y novela gráfica",
+  "Manga",
+  "Biografía",
+  "Memorias",
+  "Ensayo",
+  "Historia",
+  "Filosofía",
+  "Psicología",
+  "Divulgación científica",
+  "Autoayuda",
+  "Negocios",
+  "Viajes",
+  "Religión y espiritualidad",
+] as const;
+
 // Lo que la estantería necesita para dibujar el lomo de cada libro.
 export type ShelfBook = { id: string; title: string; category: BookCategory; coverColor: string; fontColor: string; titleFont: string };
 

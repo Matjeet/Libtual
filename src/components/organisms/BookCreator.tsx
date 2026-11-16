@@ -9,7 +9,7 @@ import type { TakenBook } from "@/components/atoms/PaperBag";
 import { HslSliders } from "@/components/molecules/HslSliders";
 import { saveBook, type NewBook } from "@/lib/book-actions";
 import { BOOK_FONTS, FONT_GROUPS, fontFamily, type BookFont } from "@/lib/book-fonts";
-import { BOOK_STATUSES, bookCategory, type BookCategory } from "@/lib/books";
+import { BOOK_GENRES, BOOK_STATUSES, bookCategory, type BookCategory } from "@/lib/books";
 import { hexToHsl, hslColor, hslToHex, type Hsl } from "@/lib/colors";
 import { useHorizontalSwipe } from "@/lib/use-horizontal-swipe";
 
@@ -149,6 +149,7 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
   // Lomo real del libro nuevo, escondido mientras vuela el de la animación.
   const hiddenSpine = useRef<HTMLElement | null>(null);
   const commentId = useId();
+  const genresId = useId();
   const coverHsl = cover ?? hexToHsl(book.colors.cover);
   const darker = (by: number) => hslColor({ ...coverHsl, l: Math.max(coverHsl.l - by, 0) });
   const colors = cover ? { ...book.colors, cover: hslColor(cover), spine: darker(13), line: darker(18) } : book.colors;
@@ -160,6 +161,7 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
     const newBook: NewBook = {
       title: text("title"),
       author: text("author"),
+      genre: text("genre"),
       year: Number(text("year")),
       pages: Number(text("pages")),
       // Si no se movieron las barras, se guarda el color exacto del libro que salió de la bolsa.
@@ -328,7 +330,16 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
                   <Field label="Fuente de la descripción">
                     <FontSelect name="comment_font" value={commentFont} onChange={setCommentFont} forComment />
                   </Field>
-                  <Field label="Estado" className="@xs:col-span-2">
+                  {/* Lista de sugerencias (datalist): se elige una o se escribe un género que no esté. */}
+                  <Field label="Género">
+                    <input name="genre" list={genresId} required maxLength={100} autoComplete="off" className={FIELD} />
+                    <datalist id={genresId}>
+                      {BOOK_GENRES.map((genre) => (
+                        <option key={genre} value={genre} />
+                      ))}
+                    </datalist>
+                  </Field>
+                  <Field label="Estado">
                     <select name="status" defaultValue="pending" className={FIELD}>
                       {BOOK_STATUSES.map(({ value, label }) => (
                         <option key={value} value={value}>

@@ -25,6 +25,7 @@ vi.mock("next/cache", () => ({ refresh }));
 const BOOK: NewBook = {
   title: "  Cien años de soledad ",
   author: "Gabriel García Márquez",
+  genre: " Realismo mágico ",
   year: 1967,
   pages: 471,
   coverColor: "#2f7a96",
@@ -49,6 +50,7 @@ describe("saveBook", () => {
       user_id: "user-1",
       title: "Cien años de soledad",
       author: "Gabriel García Márquez",
+      genre: "Realismo mágico",
       year: 1967,
       pages: 471,
       category: "large",
@@ -66,6 +68,8 @@ describe("saveBook", () => {
     const invalid: Partial<NewBook>[] = [
       { title: "   " },
       { author: "a".repeat(201) },
+      { genre: "  " },
+      { genre: "a".repeat(101) },
       { year: 2101 },
       { pages: 0 },
       { pages: 12.5 },
