@@ -5,6 +5,7 @@ import { Bookshelf } from "@/components/organisms/Bookshelf";
 import { BookshelfSkeleton } from "@/components/organisms/BookshelfSkeleton";
 import { RoomScene } from "@/components/organisms/RoomScene";
 import { RoomTemplate } from "@/components/templates/RoomTemplate";
+import { getUserBooks } from "@/lib/books";
 import { getPaintingImages } from "@/lib/paintings";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,11 +26,11 @@ async function AuthenticatedHome() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) redirect("/ingresar");
-  const paintings = await getPaintingImages(supabase, data.claims.sub);
+  const [paintings, books] = await Promise.all([getPaintingImages(supabase, data.claims.sub), getUserBooks(supabase, data.claims.sub)]);
 
   return (
     <RoomScene paintings={paintings}>
-      <Bookshelf />
+      <Bookshelf books={books} />
     </RoomScene>
   );
 }
