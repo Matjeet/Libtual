@@ -55,6 +55,10 @@ describe("BookCreator", () => {
 
     for (const name of ["Nombre del libro", "Autor"]) expect(screen.getByRole("textbox", { name })).toBeInTheDocument();
     for (const name of ["Año", "Cantidad de páginas"]) expect(screen.getByRole("spinbutton", { name })).toBeInTheDocument();
+    // Género obligatorio, con la lista de sugerencias.
+    const genre = screen.getByRole("combobox", { name: "Género" });
+    expect(genre).toBeRequired();
+    expect([...(genre as HTMLInputElement).list!.options].map((option) => option.value)).toContain("Ciencia ficción");
     const status = screen.getByRole("combobox", { name: "Estado" });
     expect(status).toHaveValue("pending");
     expect([...status.querySelectorAll("option")].map((option) => option.textContent)).toEqual(["Pendiente", "Leyendo", "Terminado"]);
@@ -153,6 +157,8 @@ describe("BookCreator", () => {
 
     await user.type(screen.getByRole("textbox", { name: "Nombre del libro" }), "Rayuela");
     await user.type(screen.getByRole("textbox", { name: "Autor" }), "Julio Cortázar");
+    // Un género que no está en la lista también vale.
+    await user.type(screen.getByRole("combobox", { name: "Género" }), "Antinovela");
     await user.type(screen.getByRole("spinbutton", { name: "Año" }), "1963");
     await user.type(screen.getByRole("spinbutton", { name: "Cantidad de páginas" }), "600");
     await user.selectOptions(screen.getByRole("combobox", { name: "Estado" }), "Leyendo");
@@ -166,6 +172,7 @@ describe("BookCreator", () => {
     expect(saveBook).toHaveBeenCalledWith({
       title: "Rayuela",
       author: "Julio Cortázar",
+      genre: "Antinovela",
       year: 1963,
       pages: 600,
       coverColor: BOOK.colors.cover,
@@ -188,6 +195,7 @@ describe("BookCreator", () => {
     render(<BookCreator book={BOOK} onClose={onClose} />);
     await user.type(screen.getByRole("textbox", { name: "Nombre del libro" }), "Aura");
     await user.type(screen.getByRole("textbox", { name: "Autor" }), "Carlos Fuentes");
+    await user.type(screen.getByRole("combobox", { name: "Género" }), "Novela");
     await user.type(screen.getByRole("spinbutton", { name: "Año" }), "1962");
     await user.type(screen.getByRole("spinbutton", { name: "Cantidad de páginas" }), "80");
     await user.click(screen.getByRole("button", { name: "Firmar" }));
