@@ -356,7 +356,7 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
             <div
               ref={commentPageRef}
               onFocus={() => setPage("comment")}
-              className={`absolute bottom-[10%] left-1/2 right-[5%] top-[6%] flex flex-col gap-2 p-2 text-(--ink) scheme-light transition-opacity duration-500 sm:pointer-events-auto sm:p-4 sm:opacity-100 ${PAGE_FADE_IN} ${page === "comment" ? "" : OFF_PAGE}`}
+              className={`absolute bottom-[10%] left-1/2 right-[5%] top-[6%] flex flex-col gap-2 p-2 text-(--ink) scheme-light @container transition-opacity duration-500 sm:pointer-events-auto sm:p-4 sm:opacity-100 ${PAGE_FADE_IN} ${page === "comment" ? "" : OFF_PAGE}`}
             >
               <label htmlFor={commentId} className="font-semibold sm:text-lg">
                 ¿Qué quieres expresar de este libro?
@@ -368,7 +368,8 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
                 value={comment}
                 onChange={(event) => setComment(event.target.value)}
                 aria-describedby={`${commentId}-count`}
-                className="min-h-0 flex-1 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink)"
+                // En páginas anchas (libro grande) la letra crece con la hoja, como en el formulario.
+                className="min-h-0 flex-1 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink) @lg:p-3 @lg:text-lg @xl:text-xl"
                 style={{ fontFamily: fontFamily(commentFont) }}
               />
               <p id={`${commentId}-count`} className="self-end text-sm">
