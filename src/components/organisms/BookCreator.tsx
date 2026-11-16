@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState, type ReactNode, type Ref } from "re
 import { BookCover, BookPages } from "@/components/atoms/BookParts";
 import type { TakenBook } from "@/components/atoms/PaperBag";
 import { HslSliders } from "@/components/molecules/HslSliders";
-import { BOOK_FONTS, fontFamily, type BookFont } from "@/lib/book-fonts";
+import { BOOK_FONTS, FONT_GROUPS, fontFamily, type BookFont } from "@/lib/book-fonts";
 import { hexToHsl, hslColor, type Hsl } from "@/lib/colors";
 
 const COMMENT_MAX = 2000;
@@ -180,7 +180,7 @@ function OpenBook({ book, page, onPage: setPage, ref }: { book: TakenBook; page:
                   <FontSelect name="title_font" value={titleFont} onChange={setTitleFont} />
                 </Field>
                 <Field label="Fuente de la descripción">
-                  <FontSelect name="description_font" value={descriptionFont} onChange={setDescriptionFont} />
+                  <FontSelect name="description_font" value={descriptionFont} onChange={setDescriptionFont} forDescription />
                 </Field>
                 <Field label="Estado" className="@xs:col-span-2">
                   <select name="status" defaultValue="pending" className={FIELD}>
@@ -230,13 +230,22 @@ function OpenBook({ book, page, onPage: setPage, ref }: { book: TakenBook; page:
   );
 }
 
-function FontSelect({ name, value, onChange }: { name: string; value: BookFont; onChange: (font: BookFont) => void }) {
+// Lista de fuentes agrupada; cada nombre se escribe con su fuente (donde el navegador lo permite).
+// forDescription: sin las fuentes que solo sirven para títulos.
+function FontSelect({ name, value, onChange, forDescription = false }: { name: string; value: BookFont; onChange: (font: BookFont) => void; forDescription?: boolean }) {
+  const fonts = BOOK_FONTS.filter((font) => !(forDescription && "titleOnly" in font));
   return (
     <select name={name} value={value} onChange={(event) => onChange(event.target.value as BookFont)} className={FIELD} style={{ fontFamily: fontFamily(value) }}>
-      {BOOK_FONTS.map((font) => (
-        <option key={font.value} value={font.value} style={{ fontFamily: font.family }}>
-          {font.label}
-        </option>
+      {FONT_GROUPS.map((group) => (
+        <optgroup key={group} label={group}>
+          {fonts
+            .filter((font) => font.group === group)
+            .map((font) => (
+              <option key={font.value} value={font.value} style={{ fontFamily: font.family }}>
+                {font.label}
+              </option>
+            ))}
+        </optgroup>
       ))}
     </select>
   );

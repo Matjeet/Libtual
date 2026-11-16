@@ -77,19 +77,21 @@ describe("BookCreator", () => {
     render(<BookCreator book={BOOK} onClose={() => {}} />);
     const titleFont = screen.getByRole("combobox", { name: "Fuente del título" });
     const descriptionFont = screen.getByRole("combobox", { name: "Fuente de la descripción" });
-    expect([...titleFont.querySelectorAll("option")].map((option) => option.textContent)).toEqual([
-      "Clásica",
-      "Elegante",
-      "Manuscrita",
-      "Máquina de escribir",
-      "Antigua",
-      "Moderna",
-    ]);
+    const groups = (select: HTMLElement) => [...select.querySelectorAll("optgroup")].map((group) => group.label);
+    const options = (select: HTMLElement) => [...select.querySelectorAll("option")].map((option) => option.textContent);
+    // Agrupadas, con el nombre real de cada fuente; las 5 que cuestan leer en un texto largo son solo para el título.
+    expect(groups(titleFont)).toEqual(["Clásicas", "Modernas", "Manuscritas", "Máquina de escribir", "Antiguas", "Decorativas"]);
+    expect(groups(descriptionFont)).toEqual(groups(titleFont));
+    expect(options(titleFont)).toHaveLength(30);
+    const titleOnly = ["Great Vibes", "Uncial Antiqua", "UnifrakturMaguntia", "Creepster", "Orbitron"];
+    expect(options(descriptionFont)).toEqual(options(titleFont).filter((label) => !titleOnly.includes(label!)));
+    expect(titleFont).toHaveValue("playfair");
+    expect(descriptionFont).toHaveValue("lora");
 
-    await user.selectOptions(titleFont, "Manuscrita");
-    expect(screen.getByRole("textbox", { name: "Nombre del libro" }).style.fontFamily).toBe("Caveat");
-    await user.selectOptions(descriptionFont, "Antigua");
-    expect(screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" }).style.fontFamily).toBe("Cinzel");
+    await user.selectOptions(titleFont, "Creepster");
+    expect(screen.getByRole("textbox", { name: "Nombre del libro" }).style.fontFamily).toBe("Creepster");
+    await user.selectOptions(descriptionFont, "Courier Prime");
+    expect(screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" }).style.fontFamily).toBe("Courier Prime");
   });
 
   test("en celular es un carrusel: deslizar, las flechas o enfocar la otra página la muestran", async () => {
