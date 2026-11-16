@@ -23,7 +23,8 @@ import { useHorizontalSwipe } from "@/lib/use-horizontal-swipe";
 // Desde xl (variables definidas en la escena):
 // --side-free: espacio libre al lado de la estantería, menos la separación y 1rem de margen con el borde de la pantalla.
 // --side-col: ancho de la columna de la bolsa y la mesa, ese espacio con un máximo de 13rem.
-const SIDE_WIDTH = "xl:w-(--side-col)";
+// Desde 2xl la bolsa y la mesa (con su portafotos) miden un 30 % más, sin pasar del espacio libre.
+const SIDE_WIDTH = "xl:w-(--side-col) 2xl:w-[min(calc(var(--side-col)*1.3),var(--side-free))]";
 const PANELS = ["la bolsa", "la estantería", "la mesa"] as const;
 const BOOKSHELF = 1;
 // Distancia mínima (px) del gesto para cambiar de panel; menos que esto es un toque o un temblor.
