@@ -193,7 +193,7 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
             <Paintings
               frames={[
                 { shape: "round", width: 1.9, grow: 3 },
-                { shape: "landscape", width: 1, grow: 1 },
+                { shape: "landscape", width: 1.2, grow: 1.29 },
               ]}
               side="right"
               images={paintings}
