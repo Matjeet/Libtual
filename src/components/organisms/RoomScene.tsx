@@ -222,7 +222,8 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
       </div>
       {/* Fuera de la región: así las flechas del teclado dentro del modal no mueven el carrusel. */}
       <PaintingMarket frame={market} current={paintings} onClose={() => setMarket(null)} />
-      <BookCreator book={newBook} onClose={() => setNewBook(null)} />
+      {/* Al guardar el libro se muestra la estantería, adonde vuela el libro nuevo. */}
+      <BookCreator book={newBook} onClose={() => setNewBook(null)} onSaved={() => setIndex(BOOKSHELF)} />
     </>
   );
 }
