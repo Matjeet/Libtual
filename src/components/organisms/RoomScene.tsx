@@ -18,6 +18,7 @@ import { SideTable } from "@/components/atoms/SideTable";
 import { BookCreator } from "@/components/organisms/BookCreator";
 import { PaintingMarket } from "@/components/organisms/PaintingMarket";
 import { PAINTING_FRAMES, type PaintingImages } from "@/lib/paintings";
+import { useHorizontalSwipe } from "@/lib/use-horizontal-swipe";
 
 // Desde xl (variables definidas en la escena):
 // --side-free: espacio libre al lado de la estantería, menos la separación y 1rem de margen con el borde de la pantalla.
@@ -93,6 +94,9 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
   // Libro que salió de la bolsa: abre la creación de un libro.
   const [newBook, setNewBook] = useState<TakenBook | null>(null);
   const dragStart = useRef<number | null>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
+  // Sin esto, en Chrome para celular el primer toque después de deslizar no hace nada.
+  useHorizontalSwipe(stripRef);
   // El último gesto fue un deslizamiento: el clic que lo sigue no debe abrir el mercado ni sacar un libro.
   const swiped = useRef(false);
   const wide = useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches, () => false);
@@ -148,6 +152,7 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
         {/* Tira con los tres paneles. Se mueve un panel completo (más el espacio entre paneles, que evita que asome
             el borde del vecino). touch-pan-y: el gesto horizontal lo manejan los eventos, no el navegador. */}
         <div
+          ref={stripRef}
           style={{ "--slide": index } as CSSProperties}
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
