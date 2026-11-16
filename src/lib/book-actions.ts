@@ -9,6 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 export type NewBook = {
   title: string;
   author: string;
+  // Uno de BOOK_GENRES o el que escriba el usuario.
+  genre: string;
   year: number;
   pages: number;
   coverColor: string;
@@ -33,6 +35,7 @@ function isValid(book: NewBook) {
   return (
     isText(book.title, 200) &&
     isText(book.author, 200) &&
+    isText(book.genre, 100) &&
     isInt(book.year, -3000, 2100) &&
     isInt(book.pages, 1, 100000) &&
     isColor(book.coverColor) &&
@@ -61,6 +64,7 @@ export async function saveBook(book: NewBook): Promise<SaveBookResult> {
       user_id: userId,
       title: book.title.trim(),
       author: book.author.trim(),
+      genre: book.genre.trim(),
       year: book.year,
       pages: book.pages,
       category: bookCategory(book.pages),
