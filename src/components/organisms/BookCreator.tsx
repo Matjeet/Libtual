@@ -31,7 +31,7 @@ const ARROW =
   "absolute top-[calc(50%+1.5rem)] hidden size-11 -translate-y-1/2 items-center justify-center rounded-full bg-card text-foreground shadow-md ring-1 ring-foreground/10 transition hover:bg-surface pointer-fine:flex sm:pointer-fine:hidden";
 // Controles sobre el papel: mismos colores en modo claro y oscuro.
 // En páginas anchas (libro grande) los campos crecen con la letra.
-const FIELD = "h-11 w-full min-w-0 rounded-md border border-(--ink)/30 bg-white/60 px-2 text-base outline-none transition focus:border-(--ink) @lg:h-12 @lg:px-3 @lg:text-lg";
+const FIELD = "h-11 w-full min-w-0 rounded-md border border-(--ink)/30 bg-white/60 px-2 text-base outline-none transition focus:border-(--ink) aria-invalid:border-[#b42318] aria-invalid:ring-1 aria-invalid:ring-[#b42318] @lg:h-12 @lg:px-3 @lg:text-lg";
 
 // Opciones de las listas del formulario. Las fuentes van agrupadas y cada una se escribe con su fuente;
 // la descripción no ofrece las que solo sirven para títulos.
@@ -45,6 +45,14 @@ const GENRES = BOOK_GENRES.map((genre) => ({ value: genre, label: genre }));
 
 // Las listas ocupan la fila entera hasta que la página es ancha (@md): en media columna no se leían los nombres largos.
 const LIST_FIELD = "@xs:col-span-2 @md:col-span-1";
+
+// Mensaje bajo un campo que no se puede guardar así (en vez del globo del navegador).
+function fieldError(input: HTMLInputElement) {
+  if (input.required && !input.value.trim()) return "Este campo es obligatorio.";
+  if (input.validity.valid) return undefined;
+  if (input.validity.stepMismatch) return "Escribe un número entero.";
+  return `Escribe un número entre ${input.min} y ${input.max}.`;
+}
 
 type Page = "form" | "comment";
 // Libro ya guardado: su id (para encontrarlo en la estantería) y cómo se ve su lomo.
@@ -149,6 +157,8 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
   const [commentFont, setCommentFont] = useState<BookFont>("lora");
   const [genre, setGenre] = useState("");
   const [status, setStatus] = useState("pending");
+  // Errores de los campos, por id del input.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [comment, setComment] = useState("");
   const [saving, startSaving] = useTransition();
   const [error, setError] = useState<string>();
@@ -170,8 +180,26 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
   const darker = (by: number) => hslColor({ ...coverHsl, l: Math.max(coverHsl.l - by, 0) });
   const colors = cover ? { ...book.colors, cover: hslColor(cover), spine: darker(13), line: darker(18) } : book.colors;
 
+  // Props del input de un campo: su id y, si tiene error, cómo anunciarlo.
+  const field = (name: string) => {
+    const id = `${fieldId}-${name}`;
+    return { id, "aria-invalid": fieldErrors[id] ? true : undefined, "aria-describedby": fieldErrors[id] ? `${id}-error` : undefined };
+  };
+  // Etiqueta del campo y su mensaje de error.
+  const label = (name: string) => ({ htmlFor: `${fieldId}-${name}`, error: fieldErrors[`${fieldId}-${name}`] });
+  const clearError = (id: string) =>
+    setFieldErrors((errors) => (id in errors ? Object.fromEntries(Object.entries(errors).filter(([key]) => key !== id)) : errors));
+
   function sign(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const errors: Record<string, string> = {};
+    for (const element of event.currentTarget.elements) {
+      const message = element instanceof HTMLInputElement && element.id ? fieldError(element) : undefined;
+      if (message) errors[element.id] = message;
+    }
+    setFieldErrors(errors);
+    const [first] = Object.keys(errors);
+    if (first) return document.getElementById(first)?.focus();
     const data = new FormData(event.currentTarget);
     const text = (name: string) => String(data.get(name) ?? "");
     const newBook: NewBook = {
@@ -303,7 +331,8 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
 
           {/* Lo escrito en las hojas: aparece cuando el libro ya está abierto. Sobre la hoja de arriba de cada página.
               Un solo formulario con las dos páginas; se envía con Firmar. */}
-          <form onSubmit={sign} aria-label="Datos del libro" className="contents">
+          {/* noValidate: los errores se muestran bajo cada campo; al escribir en un campo se quita su error. */}
+          <form onSubmit={sign} onInput={(event) => clearError((event.target as HTMLElement).id)} noValidate aria-label="Datos del libro" className="contents">
             <div
               ref={formPageRef}
               onFocus={() => setPage("form")}
@@ -313,17 +342,17 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
                 {/* min-h-full + content-evenly: si sobra alto (libro grande), las filas se reparten en toda la página en vez de quedar arriba.
                     Cuando no cabe, no sobra espacio y la página hace scroll como siempre. */}
                 <div className="grid min-h-full content-evenly gap-3 p-2 text-sm @xs:grid-cols-2 sm:p-4 @lg:gap-x-6 @lg:text-base">
-                  <Field label="Nombre del libro" className="@xs:col-span-2">
-                    <input name="title" required maxLength={200} className={FIELD} style={{ fontFamily: fontFamily(titleFont) }} />
+                  <Field label="Nombre del libro" className="@xs:col-span-2" {...label("title")}>
+                    <input name="title" required maxLength={200} {...field("title")} className={FIELD} style={{ fontFamily: fontFamily(titleFont) }} />
                   </Field>
-                  <Field label="Autor" className="@xs:col-span-2">
-                    <input name="author" required maxLength={200} className={FIELD} />
+                  <Field label="Autor" className="@xs:col-span-2" {...label("author")}>
+                    <input name="author" required maxLength={200} {...field("author")} className={FIELD} />
                   </Field>
-                  <Field label="Año">
-                    <input name="year" type="number" required min={-3000} max={2100} className={FIELD} />
+                  <Field label="Año" {...label("year")}>
+                    <input name="year" type="number" required min={-3000} max={2100} {...field("year")} className={FIELD} />
                   </Field>
-                  <Field label="Cantidad de páginas">
-                    <input name="pages" type="number" required min={1} max={100000} className={FIELD} />
+                  <Field label="Cantidad de páginas" {...label("pages")}>
+                    <input name="pages" type="number" required min={1} max={100000} {...field("pages")} className={FIELD} />
                   </Field>
                   <HslSliders legend="Color de la pasta" value={coverHsl} onChange={setCover} />
                   <HslSliders
@@ -365,13 +394,18 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
                       style={{ fontFamily: fontFamily(commentFont) }}
                     />
                   </Field>
-                  <Field label="Género" className={LIST_FIELD} htmlFor={`${fieldId}-genre`}>
+                  <Field label="Género" className={LIST_FIELD} {...label("genre")}>
                     <Combobox
                       id={`${fieldId}-genre`}
                       name="genre"
                       options={GENRES}
                       value={genre}
-                      onChange={setGenre}
+                      onChange={(value) => {
+                        setGenre(value);
+                        clearError(`${fieldId}-genre`);
+                      }}
+                      invalid={Boolean(fieldErrors[`${fieldId}-genre`])}
+                      describedBy={`${fieldId}-genre-error`}
                       listLabel="Géneros"
                       allowCustom
                       required
@@ -460,21 +494,19 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
   );
 }
 
-// htmlFor: para controles con más que un input (las listas); así la etiqueta no envuelve la lista y su texto
-// no se suma al nombre del campo.
-function Field({ label, htmlFor, className = "", children }: { label: string; htmlFor?: string; className?: string; children: ReactNode }) {
-  if (htmlFor)
-    return (
-      <div className={`flex min-w-0 flex-col gap-1 font-medium ${className}`}>
-        <label htmlFor={htmlFor}>{label}</label>
-        {children}
-      </div>
-    );
+// Etiqueta, control y, debajo, el mensaje de error (id `${htmlFor}-error`, al que apunta el aria-describedby del control).
+// La etiqueta no envuelve el control: así el texto de las listas no se suma al nombre del campo.
+function Field({ label, htmlFor, error, className = "", children }: { label: string; htmlFor: string; error?: string; className?: string; children: ReactNode }) {
   return (
-    <label className={`flex min-w-0 flex-col gap-1 font-medium ${className}`}>
-      {label}
+    <div className={`flex min-w-0 flex-col gap-1 font-medium ${className}`}>
+      <label htmlFor={htmlFor}>{label}</label>
       {children}
-    </label>
+      {error && (
+        <p id={`${htmlFor}-error`} className="font-normal text-[#b42318]">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
 

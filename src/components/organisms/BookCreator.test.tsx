@@ -208,6 +208,34 @@ describe("BookCreator", () => {
     shelf.remove();
   });
 
+  test("los campos obligatorios vacíos o fuera de rango se marcan con su mensaje y no se guarda", async () => {
+    saveBook.mockClear();
+    const user = userEvent.setup();
+    render(<BookCreator book={BOOK} onClose={() => {}} />);
+    const title = screen.getByRole("textbox", { name: "Nombre del libro" });
+    const genre = screen.getByRole("combobox", { name: "Género" });
+    const pages = screen.getByRole("spinbutton", { name: "Cantidad de páginas" });
+    await user.type(title, "   ");
+    await user.type(pages, "0");
+    await user.click(screen.getByRole("button", { name: "Firmar" }));
+
+    expect(saveBook).not.toHaveBeenCalled();
+    for (const field of [title, screen.getByRole("textbox", { name: "Autor" }), screen.getByRole("spinbutton", { name: "Año" }), genre]) {
+      expect(field).toBeInvalid();
+      expect(field).toHaveAccessibleDescription("Este campo es obligatorio.");
+    }
+    expect(pages).toHaveAccessibleDescription("Escribe un número entre 1 y 100000.");
+    // El primero con error queda enfocado.
+    expect(title).toHaveFocus();
+
+    // Al corregir un campo se quita su error.
+    await user.type(title, "Rayuela");
+    expect(title).not.toBeInvalid();
+    await user.click(genre);
+    await user.click(screen.getByRole("option", { name: "Novela" }));
+    expect(genre).not.toBeInvalid();
+  });
+
   test("si no se puede guardar, muestra el error y deja firmar de nuevo", async () => {
     saveBook.mockResolvedValue({ error: "No pudimos guardar tu libro. Intenta de nuevo." });
     const onClose = vi.fn();
