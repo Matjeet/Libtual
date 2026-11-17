@@ -10,6 +10,12 @@ const FRAME_HEIGHT = "h-[calc(max(10.5rem,round(down,100%-1.25rem,10.5rem))+1.25
 // visibles quedan ocultos. Agregar un piso cuando el último se llene y habilitar el scroll solo entonces.
 const SHELVES = 10;
 
+// Cada libro tiene su propia perspectiva, centrada en él: todos se ven sacar igual, estén donde estén.
+const PERSPECTIVE = "perspective-[500px]";
+// El libro sale hacia adelante y se inclina sobre su base (la parte de arriba hacia afuera). Solo con mouse (hover).
+const PULL =
+  "origin-bottom transition-transform duration-300 ease-out group-hover:[transform:translateZ(10px)_rotateX(-18deg)] motion-reduce:transition-none";
+
 // books: los libros del usuario, en el orden en que los agregó. Se acomodan de izquierda a derecha, piso por piso.
 export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
   return (
@@ -36,14 +42,27 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
             {books.length > 0 && (
               <ul aria-label="Libros" className="absolute inset-0 flex flex-wrap content-start gap-x-0.5 px-1.5">
                 {books.map((book) => (
-                  <li key={book.id} data-book-id={book.id} className="flex h-[10.5rem] items-end pb-5">
-                    <BookSpine
-                      title={book.title}
-                      category={book.category}
-                      coverColor={book.coverColor}
-                      fontColor={book.fontColor}
-                      titleFont={book.titleFont}
-                    />
+                  <li key={book.id} data-book-id={book.id} className={`group relative flex h-[10.5rem] items-end pb-5 hover:z-10 ${PERSPECTIVE}`}>
+                    {/* Al pasar el mouse el libro sale un poco, como al sacarlo: se inclina hacia adelante sobre su base y
+                        deja ver arriba el canto de las hojas entre las dos pastas. */}
+                    <div className={`relative transform-3d ${PULL}`}>
+                      <BookSpine
+                        title={book.title}
+                        category={book.category}
+                        coverColor={book.coverColor}
+                        fontColor={book.fontColor}
+                        titleFont={book.titleFont}
+                      />
+                      {/* Cara de arriba: acostada hacia el fondo (de canto, no se ve) hasta que el libro se inclina. */}
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-x-0 bottom-full h-14 origin-bottom rounded-t-sm border-x-2 border-t-2 backface-hidden [transform:rotateX(90deg)]"
+                        style={{
+                          borderColor: `color-mix(in oklab, ${book.coverColor} 65%, black)`,
+                          background: "repeating-linear-gradient(90deg, #d8c8b0 0 1px, #fdfaf5 1px 3px)",
+                        }}
+                      />
+                    </div>
                   </li>
                 ))}
               </ul>

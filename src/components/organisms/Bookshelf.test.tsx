@@ -26,7 +26,8 @@ describe("Bookshelf", () => {
     const books = screen.getAllByRole("listitem");
     expect(books.map((book) => book.textContent)).toEqual(["Rayuela", "Aura"]);
     expect(books[0]).toHaveAttribute("data-book-id", "b1");
-    const [thick, short] = books.map((book) => book.firstElementChild as HTMLElement);
+    // Cada libro: el lomo y, detrás, la cara de arriba (las hojas) que se ve al sacarlo.
+    const [thick, short] = books.map((book) => book.firstElementChild!.firstElementChild as HTMLElement);
     expect(thick).toHaveClass("w-14", "h-32");
     expect(thick.style.background).toBe("rgb(47, 122, 150)");
     expect(short).toHaveClass("w-6", "h-24");
