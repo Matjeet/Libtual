@@ -6,6 +6,7 @@ import { flushSync } from "react-dom";
 import { BookCover, BookPages } from "@/components/atoms/BookParts";
 import { BookSpine } from "@/components/atoms/BookSpine";
 import type { TakenBook } from "@/components/atoms/PaperBag";
+import { Combobox, type ComboboxOption } from "@/components/molecules/Combobox";
 import { HslSliders } from "@/components/molecules/HslSliders";
 import { saveBook, type NewBook } from "@/lib/book-actions";
 import { BOOK_FONTS, FONT_GROUPS, fontFamily, type BookFont } from "@/lib/book-fonts";
@@ -31,6 +32,19 @@ const ARROW =
 // Controles sobre el papel: mismos colores en modo claro y oscuro.
 // En páginas anchas (libro grande) los campos crecen con la letra.
 const FIELD = "h-11 w-full min-w-0 rounded-md border border-(--ink)/30 bg-white/60 px-2 text-base outline-none transition focus:border-(--ink) @lg:h-12 @lg:px-3 @lg:text-lg";
+
+// Opciones de las listas del formulario. Las fuentes van agrupadas y cada una se escribe con su fuente;
+// la descripción no ofrece las que solo sirven para títulos.
+const fontOptions = (forComment: boolean): ComboboxOption[] =>
+  FONT_GROUPS.flatMap((group) => BOOK_FONTS.filter((font) => font.group === group && !(forComment && "titleOnly" in font))).map(
+    (font) => ({ value: font.value, label: font.label, group: font.group, style: { fontFamily: font.family } }),
+  );
+const TITLE_FONTS = fontOptions(false);
+const COMMENT_FONTS = fontOptions(true);
+const GENRES = BOOK_GENRES.map((genre) => ({ value: genre, label: genre }));
+
+// Las listas ocupan la fila entera hasta que la página es ancha (@md): en media columna no se leían los nombres largos.
+const LIST_FIELD = "@xs:col-span-2 @md:col-span-1";
 
 type Page = "form" | "comment";
 // Libro ya guardado: su id (para encontrarlo en la estantería) y cómo se ve su lomo.
@@ -133,6 +147,8 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
   const [titleColor, setTitleColor] = useState(TITLE_COLOR);
   const [titleFont, setTitleFont] = useState<BookFont>("playfair");
   const [commentFont, setCommentFont] = useState<BookFont>("lora");
+  const [genre, setGenre] = useState("");
+  const [status, setStatus] = useState("pending");
   const [comment, setComment] = useState("");
   const [saving, startSaving] = useTransition();
   const [error, setError] = useState<string>();
@@ -149,7 +165,7 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
   // Lomo real del libro nuevo, escondido mientras vuela el de la animación.
   const hiddenSpine = useRef<HTMLElement | null>(null);
   const commentId = useId();
-  const genresId = useId();
+  const fieldId = useId();
   const coverHsl = cover ?? hexToHsl(book.colors.cover);
   const darker = (by: number) => hslColor({ ...coverHsl, l: Math.max(coverHsl.l - by, 0) });
   const colors = cover ? { ...book.colors, cover: hslColor(cover), spine: darker(13), line: darker(18) } : book.colors;
@@ -324,29 +340,55 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
                       </span>
                     }
                   />
-                  <Field label="Fuente del título">
-                    <FontSelect name="title_font" value={titleFont} onChange={setTitleFont} />
+                  {/* Listas editables: escribir filtra las opciones. El género además acepta uno que no esté en la lista. */}
+                  <Field label="Fuente del título" className={LIST_FIELD} htmlFor={`${fieldId}-title-font`}>
+                    <Combobox
+                      id={`${fieldId}-title-font`}
+                      name="title_font"
+                      options={TITLE_FONTS}
+                      value={titleFont}
+                      onChange={(font) => setTitleFont(font as BookFont)}
+                      listLabel="Fuentes"
+                      className={FIELD}
+                      style={{ fontFamily: fontFamily(titleFont) }}
+                    />
                   </Field>
-                  <Field label="Fuente de la descripción">
-                    <FontSelect name="comment_font" value={commentFont} onChange={setCommentFont} forComment />
+                  <Field label="Fuente de la descripción" className={LIST_FIELD} htmlFor={`${fieldId}-comment-font`}>
+                    <Combobox
+                      id={`${fieldId}-comment-font`}
+                      name="comment_font"
+                      options={COMMENT_FONTS}
+                      value={commentFont}
+                      onChange={(font) => setCommentFont(font as BookFont)}
+                      listLabel="Fuentes"
+                      className={FIELD}
+                      style={{ fontFamily: fontFamily(commentFont) }}
+                    />
                   </Field>
-                  {/* Lista de sugerencias (datalist): se elige una o se escribe un género que no esté. */}
-                  <Field label="Género">
-                    <input name="genre" list={genresId} required maxLength={100} autoComplete="off" className={FIELD} />
-                    <datalist id={genresId}>
-                      {BOOK_GENRES.map((genre) => (
-                        <option key={genre} value={genre} />
-                      ))}
-                    </datalist>
+                  <Field label="Género" className={LIST_FIELD} htmlFor={`${fieldId}-genre`}>
+                    <Combobox
+                      id={`${fieldId}-genre`}
+                      name="genre"
+                      options={GENRES}
+                      value={genre}
+                      onChange={setGenre}
+                      listLabel="Géneros"
+                      allowCustom
+                      required
+                      maxLength={100}
+                      className={FIELD}
+                    />
                   </Field>
-                  <Field label="Estado">
-                    <select name="status" defaultValue="pending" className={FIELD}>
-                      {BOOK_STATUSES.map(({ value, label }) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
+                  <Field label="Estado" className={LIST_FIELD} htmlFor={`${fieldId}-status`}>
+                    <Combobox
+                      id={`${fieldId}-status`}
+                      name="status"
+                      options={BOOK_STATUSES}
+                      value={status}
+                      onChange={setStatus}
+                      listLabel="Estados"
+                      className={FIELD}
+                    />
                   </Field>
                   {/* Al final de la hoja, donde se firma. Colores fijos: va sobre el papel en modo claro y oscuro. */}
                   <div className="flex flex-col items-end gap-2 @xs:col-span-2">
@@ -418,28 +460,16 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
   );
 }
 
-// Lista de fuentes agrupada; cada nombre se escribe con su fuente (donde el navegador lo permite).
-// forComment: sin las fuentes que solo sirven para títulos.
-function FontSelect({ name, value, onChange, forComment = false }: { name: string; value: BookFont; onChange: (font: BookFont) => void; forComment?: boolean }) {
-  const fonts = BOOK_FONTS.filter((font) => !(forComment && "titleOnly" in font));
-  return (
-    <select name={name} value={value} onChange={(event) => onChange(event.target.value as BookFont)} className={FIELD} style={{ fontFamily: fontFamily(value) }}>
-      {FONT_GROUPS.map((group) => (
-        <optgroup key={group} label={group}>
-          {fonts
-            .filter((font) => font.group === group)
-            .map((font) => (
-              <option key={font.value} value={font.value} style={{ fontFamily: font.family }}>
-                {font.label}
-              </option>
-            ))}
-        </optgroup>
-      ))}
-    </select>
-  );
-}
-
-function Field({ label, className = "", children }: { label: string; className?: string; children: ReactNode }) {
+// htmlFor: para controles con más que un input (las listas); así la etiqueta no envuelve la lista y su texto
+// no se suma al nombre del campo.
+function Field({ label, htmlFor, className = "", children }: { label: string; htmlFor?: string; className?: string; children: ReactNode }) {
+  if (htmlFor)
+    return (
+      <div className={`flex min-w-0 flex-col gap-1 font-medium ${className}`}>
+        <label htmlFor={htmlFor}>{label}</label>
+        {children}
+      </div>
+    );
   return (
     <label className={`flex min-w-0 flex-col gap-1 font-medium ${className}`}>
       {label}
