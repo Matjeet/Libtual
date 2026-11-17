@@ -436,10 +436,14 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
                     <button
                       type="submit"
                       disabled={saving || saved !== null}
-                      className="inline-flex h-11 items-center gap-2 rounded-full bg-(--ink) px-5 font-semibold text-[#fdfaf5] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 @lg:h-12 @lg:px-6 @lg:text-lg"
+                      className="group inline-flex h-11 items-center gap-2 rounded-full bg-(--ink) px-5 font-semibold text-[#fdfaf5] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 @lg:h-12 @lg:px-6 @lg:text-lg"
                     >
                       {saving ? "Firmando..." : "Firmar"}
-                      <Feather aria-hidden="true" className="size-5" />
+                      {/* Con el mouse encima, la pluma escribe (keyframes feather-write en globals.css); no mientras se guarda. */}
+                      <Feather
+                        aria-hidden="true"
+                        className="size-5 origin-bottom-left motion-safe:group-hover:group-enabled:animate-[feather-write_0.9s_ease-in-out_infinite]"
+                      />
                     </button>
                   </div>
                 </div>
