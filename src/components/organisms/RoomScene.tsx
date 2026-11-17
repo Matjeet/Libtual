@@ -16,6 +16,8 @@ import { PaintingFrame, type FrameShape } from "@/components/atoms/PaintingFrame
 import { PaperBag, type TakenBook } from "@/components/atoms/PaperBag";
 import { SideTable } from "@/components/atoms/SideTable";
 import { BookCreator } from "@/components/organisms/BookCreator";
+import { OpenShelfBook } from "@/components/organisms/Bookshelf";
+import { BookViewer, type ViewedBook } from "@/components/organisms/BookViewer";
 import { PaintingMarket } from "@/components/organisms/PaintingMarket";
 import { PAINTING_FRAMES, type PaintingImages } from "@/lib/paintings";
 import { useHorizontalSwipe } from "@/lib/use-horizontal-swipe";
@@ -94,6 +96,8 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
   const [market, setMarket] = useState<FrameShape | null>(null);
   // Libro que salió de la bolsa: abre la creación de un libro.
   const [newBook, setNewBook] = useState<TakenBook | null>(null);
+  // Libro de la estantería que se está viendo.
+  const [viewing, setViewing] = useState<ViewedBook | null>(null);
   const dragStart = useRef<number | null>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   // Sin esto, en Chrome para celular el primer toque después de deslizar no hace nada.
@@ -136,7 +140,7 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
   }
 
   return (
-    <>
+    <OpenShelfBook value={setViewing}>
       <div
         role="region"
         aria-roledescription="carrusel"
@@ -230,6 +234,7 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
       <PaintingMarket frame={market} current={paintings} onClose={() => setMarket(null)} />
       {/* Al guardar el libro se muestra la estantería, adonde vuela el libro nuevo. */}
       <BookCreator book={newBook} onClose={() => setNewBook(null)} onSaved={() => setIndex(BOOKSHELF)} />
-    </>
+      <BookViewer viewing={viewing} onClose={() => setViewing(null)} />
+    </OpenShelfBook>
   );
 }
