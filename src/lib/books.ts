@@ -56,16 +56,40 @@ export const BOOK_GENRES = [
   "Religión y espiritualidad",
 ] as const;
 
-// Lo que la estantería necesita para dibujar el lomo de cada libro.
-export type ShelfBook = { id: string; title: string; category: BookCategory; coverColor: string; fontColor: string; titleFont: string };
+// Lo que la estantería necesita para dibujar el lomo de cada libro y mostrarlo abierto al elegirlo.
+export type ShelfBook = {
+  id: string;
+  title: string;
+  category: BookCategory;
+  coverColor: string;
+  fontColor: string;
+  titleFont: string;
+  author: string;
+  year: number;
+  genre: string;
+  comment: string;
+  commentFont: string;
+};
 
-type BookRow = { id: string; title: string; category: BookCategory; cover_color: string; font_color: string; title_font: string };
+type BookRow = {
+  id: string;
+  title: string;
+  category: BookCategory;
+  cover_color: string;
+  font_color: string;
+  title_font: string;
+  author: string;
+  year: number;
+  genre: string;
+  comment: string;
+  comment_font: string;
+};
 
 // Libros del usuario en el orden en que los agregó. Si la lectura falla, la estantería queda vacía en vez de romper la página.
 export async function getUserBooks(supabase: Supabase, userId: string): Promise<ShelfBook[]> {
   const { data, error } = await supabase
     .from("user_books")
-    .select("id, title, category, cover_color, font_color, title_font")
+    .select("id, title, category, cover_color, font_color, title_font, author, year, genre, comment, comment_font")
     .eq("user_id", userId)
     .order("created_at");
   if (error || !data) return [];
@@ -76,5 +100,10 @@ export async function getUserBooks(supabase: Supabase, userId: string): Promise<
     coverColor: row.cover_color,
     fontColor: row.font_color,
     titleFont: row.title_font,
+    author: row.author,
+    year: row.year,
+    genre: row.genre,
+    comment: row.comment,
+    commentFont: row.comment_font,
   }));
 }
