@@ -216,6 +216,27 @@ body {
   }
 }
 
+/* Pluma del botón Firmar (BookCreator), al pasar el mouse: la punta (abajo a la izquierda) va y viene hacia la derecha,
+   como escribiendo una palabra, y vuelve al inicio. Solo anima transform. */
+@keyframes feather-write {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  20% {
+    transform: translate(2px, -1px) rotate(-8deg);
+  }
+  40% {
+    transform: translate(4px, 1px) rotate(4deg);
+  }
+  60% {
+    transform: translate(6px, -1px) rotate(-8deg);
+  }
+  80% {
+    transform: translate(3px, 1px) rotate(3deg);
+  }
+}
+
 /*
  * Calendario (DayPicker, usado en DateField): mismos tokens que el resto de la app.
  * Mobile-first: en celulares el calendario ocupa el ancho de la pantalla y los 7 días se reparten el espacio
