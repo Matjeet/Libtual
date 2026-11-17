@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { BookCreator } from "./BookCreator";
@@ -58,10 +58,13 @@ describe("BookCreator", () => {
     // Género obligatorio, con la lista de sugerencias.
     const genre = screen.getByRole("combobox", { name: "Género" });
     expect(genre).toBeRequired();
-    expect([...(genre as HTMLInputElement).list!.options].map((option) => option.value)).toContain("Ciencia ficción");
+    await user.click(genre);
+    expect(screen.getByRole("option", { name: "Ciencia ficción" })).toBeInTheDocument();
     const status = screen.getByRole("combobox", { name: "Estado" });
-    expect(status).toHaveValue("pending");
-    expect([...status.querySelectorAll("option")].map((option) => option.textContent)).toEqual(["Pendiente", "Leyendo", "Terminado"]);
+    expect(status).toHaveValue("Pendiente");
+    await user.click(status);
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(["Pendiente", "Leyendo", "Terminado"]);
+    await user.keyboard("{Escape}");
 
     // Barras HSL: empiezan en el color del libro que salió de la bolsa (#2f7a96 = hsl(196 52% 39%)).
     const cover = screen.getByRole("group", { name: "Color de la pasta" });
@@ -84,20 +87,36 @@ describe("BookCreator", () => {
     render(<BookCreator book={BOOK} onClose={() => {}} />);
     const titleFont = screen.getByRole("combobox", { name: "Fuente del título" });
     const commentFont = screen.getByRole("combobox", { name: "Fuente de la descripción" });
-    const groups = (select: HTMLElement) => [...select.querySelectorAll("optgroup")].map((group) => group.label);
-    const options = (select: HTMLElement) => [...select.querySelectorAll("option")].map((option) => option.textContent);
+    // Abre la lista de un campo y devuelve sus grupos y opciones; Escape la cierra.
+    const open = async (field: HTMLElement) => {
+      await user.click(field);
+      const list = screen.getByRole("listbox");
+      const groups = within(list)
+        .getAllByRole("group")
+        .map((group) => document.getElementById(group.getAttribute("aria-labelledby")!)!.textContent);
+      const options = within(list)
+        .getAllByRole("option")
+        .map((option) => option.textContent);
+      await user.keyboard("{Escape}");
+      return { groups, options };
+    };
+    const title = await open(titleFont);
+    const comment = await open(commentFont);
     // Agrupadas, con el nombre real de cada fuente; las 5 que cuestan leer en un texto largo son solo para el título.
-    expect(groups(titleFont)).toEqual(["Clásicas", "Modernas", "Manuscritas", "Máquina de escribir", "Antiguas", "Decorativas"]);
-    expect(groups(commentFont)).toEqual(groups(titleFont));
-    expect(options(titleFont)).toHaveLength(30);
+    expect(title.groups).toEqual(["Clásicas", "Modernas", "Manuscritas", "Máquina de escribir", "Antiguas", "Decorativas"]);
+    expect(comment.groups).toEqual(title.groups);
+    expect(title.options).toHaveLength(30);
     const titleOnly = ["Great Vibes", "Uncial Antiqua", "UnifrakturMaguntia", "Creepster", "Orbitron"];
-    expect(options(commentFont)).toEqual(options(titleFont).filter((label) => !titleOnly.includes(label!)));
-    expect(titleFont).toHaveValue("playfair");
-    expect(commentFont).toHaveValue("lora");
+    expect(comment.options).toEqual(title.options.filter((label) => !titleOnly.includes(label!)));
+    expect(titleFont).toHaveValue("Playfair Display");
+    expect(commentFont).toHaveValue("Lora");
 
-    await user.selectOptions(titleFont, "Creepster");
+    await user.click(titleFont);
+    await user.click(screen.getByRole("option", { name: "Creepster" }));
     expect(screen.getByRole("textbox", { name: "Nombre del libro" }).style.fontFamily).toBe("Creepster");
-    await user.selectOptions(commentFont, "Courier Prime");
+    // También se puede escribir para buscar la fuente.
+    await user.clear(commentFont);
+    await user.type(commentFont, "courier{Enter}");
     expect(screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" }).style.fontFamily).toBe("Courier Prime");
   });
 
@@ -161,7 +180,8 @@ describe("BookCreator", () => {
     await user.type(screen.getByRole("combobox", { name: "Género" }), "Antinovela");
     await user.type(screen.getByRole("spinbutton", { name: "Año" }), "1963");
     await user.type(screen.getByRole("spinbutton", { name: "Cantidad de páginas" }), "600");
-    await user.selectOptions(screen.getByRole("combobox", { name: "Estado" }), "Leyendo");
+    await user.click(screen.getByRole("combobox", { name: "Estado" }));
+    await user.click(screen.getByRole("option", { name: "Leyendo" }));
     await user.type(screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" }), "Un juego.");
     const sign = screen.getByRole("button", { name: "Firmar" });
     // Firmar + pluma, en ese orden.
