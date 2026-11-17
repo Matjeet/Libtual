@@ -17,6 +17,9 @@ type ComboboxProps = {
   allowCustom?: boolean;
   required?: boolean;
   maxLength?: number;
+  invalid?: boolean;
+  // Id del mensaje de error; solo se usa mientras invalid.
+  describedBy?: string;
   // Estilos del input (los de cada formulario) y su fuente.
   className?: string;
   style?: CSSProperties;
@@ -30,7 +33,21 @@ const normalize = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}
 // La lista usa los colores del papel del libro (tinta sobre papel, iguales en modo claro y oscuro).
 // Sin allowCustom, lo escrito que no coincide con una opción se descarta y vuelve el valor anterior.
 // Con allowCustom no se marca ninguna opción al escribir (Enter no reemplaza lo escrito): se eligen con las flechas o el mouse.
-export function Combobox({ id, name, options, value, onChange, listLabel, allowCustom = false, required, maxLength, className = "", style }: ComboboxProps) {
+export function Combobox({
+  id,
+  name,
+  options,
+  value,
+  onChange,
+  listLabel,
+  allowCustom = false,
+  required,
+  maxLength,
+  invalid,
+  describedBy,
+  className = "",
+  style,
+}: ComboboxProps) {
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -136,6 +153,8 @@ export function Combobox({ id, name, options, value, onChange, listLabel, allowC
         aria-controls={listId}
         aria-activedescendant={activeId}
         required={required}
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? describedBy : undefined}
         maxLength={maxLength}
         value={query ?? selected?.label ?? (allowCustom ? value : "")}
         onChange={(event) => type(event.target.value)}
