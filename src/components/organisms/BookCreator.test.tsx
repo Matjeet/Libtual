@@ -80,6 +80,14 @@ describe("BookCreator", () => {
     expect(comment).toHaveAccessibleDescription("0/2000");
     await user.type(comment, "Me encantó");
     expect(comment).toHaveAccessibleDescription("10/2000");
+    // Desde 1500 caracteres el contador se pone rojo.
+    const counter = screen.getByText("10/2000");
+    expect(counter).not.toHaveClass("text-[#b42318]");
+    fireEvent.change(comment, { target: { value: "a".repeat(1499) } });
+    expect(counter).not.toHaveClass("text-[#b42318]");
+    fireEvent.change(comment, { target: { value: "a".repeat(1500) } });
+    expect(counter).toHaveTextContent("1500/2000");
+    expect(counter).toHaveClass("text-[#b42318]");
   });
 
   test("las fuentes elegidas se ven en el nombre y en la descripción", async () => {

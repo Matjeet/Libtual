@@ -15,6 +15,8 @@ import { hexToHsl, hslColor, hslToHex, type Hsl } from "@/lib/colors";
 import { useHorizontalSwipe } from "@/lib/use-horizontal-swipe";
 
 const COMMENT_MAX = 2000;
+// Desde aquí el contador se pone rojo: avisa que se acerca al límite.
+const COMMENT_WARNING = 1500;
 // Letras claras, como un título dorado sobre la tapa.
 const TITLE_COLOR: Hsl = { h: 45, s: 80, l: 90 };
 // Desde sm se ve el libro completo; por debajo, una página a la vez.
@@ -462,7 +464,7 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
                 className="min-h-0 flex-1 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink) @lg:p-3 @lg:text-lg @xl:text-xl"
                 style={{ fontFamily: fontFamily(commentFont) }}
               />
-              <p id={`${commentId}-count`} className="self-end text-sm">
+              <p id={`${commentId}-count`} className={`self-end text-sm ${comment.length >= COMMENT_WARNING ? "font-semibold text-[#b42318]" : ""}`}>
                 {comment.length}/{COMMENT_MAX}
               </p>
             </div>
