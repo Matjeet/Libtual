@@ -15,6 +15,7 @@ const BOOK = {
   genre: "Filosofía",
   comment: "Sobre la justicia.\nY la ciudad ideal.",
   commentFont: "caveat",
+  quote: "El tiempo descubre la verdad.",
 };
 
 function view() {
@@ -39,8 +40,16 @@ describe("BookViewer", () => {
     expect(comment).toHaveTextContent("Sobre la justicia. Y la ciudad ideal.");
     expect(comment).toHaveClass("text-justify", "whitespace-pre-line");
     expect(comment.style.fontFamily).toBe("Caveat");
+    const quote = within(dialog).getByText("“El tiempo descubre la verdad.”");
+    expect(quote.closest("blockquote")).toHaveClass("italic");
     // No es un campo para escribir.
     expect(within(dialog).queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  test("sin cita, no muestra el espacio de la cita", () => {
+    const slot = document.createElement("button");
+    render(<BookViewer viewing={{ book: { ...BOOK, quote: "" }, slot, rect: new DOMRect(10, 20, 40, 128) }} onClose={vi.fn()} />);
+    expect(screen.queryByRole("blockquote")).not.toBeInTheDocument();
   });
 
   test("mientras está abierto deja el hueco en la estantería; al cerrar con la X lo devuelve", async () => {
