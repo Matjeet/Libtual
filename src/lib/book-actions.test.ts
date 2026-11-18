@@ -81,7 +81,7 @@ describe("saveBook", () => {
       // Fuente que solo sirve para títulos.
       { commentFont: "creepster" },
       { status: "lost" },
-      { comment: "a".repeat(2001) },
+      { comment: "a".repeat(4001) },
       { quote: "a".repeat(301) },
     ];
     for (const change of invalid) expect(await saveBook({ ...BOOK, ...change })).toEqual({ error: "Revisa los datos del libro." });

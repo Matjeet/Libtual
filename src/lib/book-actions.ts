@@ -46,7 +46,7 @@ function isValid(book: NewBook) {
     isFont(book.commentFont, true) &&
     BOOK_STATUSES.some(({ value }) => value === book.status) &&
     typeof book.comment === "string" &&
-    length(book.comment) <= 2000 &&
+    length(book.comment) <= 4000 &&
     typeof book.quote === "string" &&
     length(book.quote) <= 300
   );

@@ -76,17 +76,17 @@ describe("BookCreator", () => {
     expect(document.querySelector('path[fill="hsl(10 52% 39%)"]')).toBeInTheDocument();
 
     const comment = screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" });
-    expect(comment).toHaveAttribute("maxlength", "2000");
-    expect(comment).toHaveAccessibleDescription("0/2000");
+    expect(comment).toHaveAttribute("maxlength", "4000");
+    expect(comment).toHaveAccessibleDescription("0/4000");
     await user.type(comment, "Me encantó");
-    expect(comment).toHaveAccessibleDescription("10/2000");
-    // Desde 1500 caracteres el contador se pone rojo.
-    const counter = screen.getByText("10/2000");
+    expect(comment).toHaveAccessibleDescription("10/4000");
+    // Desde 3000 caracteres el contador se pone rojo.
+    const counter = screen.getByText("10/4000");
     expect(counter).not.toHaveClass("text-[#b42318]");
-    fireEvent.change(comment, { target: { value: "a".repeat(1499) } });
+    fireEvent.change(comment, { target: { value: "a".repeat(2999) } });
     expect(counter).not.toHaveClass("text-[#b42318]");
-    fireEvent.change(comment, { target: { value: "a".repeat(1500) } });
-    expect(counter).toHaveTextContent("1500/2000");
+    fireEvent.change(comment, { target: { value: "a".repeat(3000) } });
+    expect(counter).toHaveTextContent("3000/4000");
     expect(counter).toHaveClass("text-[#b42318]");
   });
 

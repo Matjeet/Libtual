@@ -13,10 +13,10 @@ import { BOOK_FONTS, FONT_GROUPS, fontFamily, type BookFont } from "@/lib/book-f
 import { BOOK_GENRES, BOOK_STATUSES, bookCategory, type BookCategory } from "@/lib/books";
 import { hexToHsl, hslColor, hslToHex, type Hsl } from "@/lib/colors";
 
-const COMMENT_MAX = 2000;
+const COMMENT_MAX = 4000;
 const QUOTE_MAX = 300;
 // Desde aquí el contador se pone rojo: avisa que se acerca al límite (al 75 %, en la descripción y en la cita).
-const COMMENT_WARNING = 1500;
+const COMMENT_WARNING = 3000;
 const QUOTE_WARNING = 225;
 // Letras claras, como un título dorado sobre la tapa.
 const TITLE_COLOR: Hsl = { h: 45, s: 80, l: 90 };
