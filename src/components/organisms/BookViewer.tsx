@@ -2,6 +2,7 @@
 
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { BookCover } from "@/components/atoms/BookParts";
 import { BookSpine } from "@/components/atoms/BookSpine";
 import { BookDialog, BookFrame, bookToShelf, canAnimate, closeBook, pageClass, settle, shelfToBook, type BookParts } from "@/components/organisms/BookStage";
 import { BOOK_FONTS } from "@/lib/book-fonts";
@@ -42,6 +43,7 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
   const leftRef = useRef<HTMLDivElement>(null);
   const rightRef = useRef<HTMLDivElement>(null);
   const spineRef = useRef<HTMLDivElement>(null);
+  const coverRef = useRef<HTMLDivElement>(null);
   // Mientras vuela (al abrir o al cerrar) no se puede volver a cerrar.
   const busy = useRef(false);
   // Lugar del lomo en la estantería al cerrar (si cambió desde que se abrió, por ejemplo, al girar el celular).
@@ -59,13 +61,13 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
   useLayoutEffect(() => {
     if (!viewing) return;
     showSlot(viewing.slot, false);
-    if (animated) flyRef.current!.style.transform = "perspective(60rem) rotateY(90deg)";
+    if (animated) flyRef.current!.style.visibility = "hidden";
   }, [viewing, animated]);
 
   // Con el modal ya abierto (los efectos de los hijos corren antes), el lomo vuela al centro y el libro se abre.
   const takeOut = useEffectEvent((rect: DOMRect) => {
     busy.current = true;
-    shelfToBook(parts(), spineRef.current!, rect).finally(() => (busy.current = false));
+    shelfToBook(parts(), spineRef.current!, coverRef.current!, rect).finally(() => (busy.current = false));
   });
   useEffect(() => {
     if (viewing && animated) takeOut(viewing.rect);
@@ -91,6 +93,7 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
   const book = viewing?.book;
   const cover = book ? hexToHsl(book.coverColor) : null;
   const darker = (by: number) => (cover ? hslColor({ ...cover, l: Math.max(cover.l - by, 0) }) : "");
+  const colors = book ? { cover: book.coverColor, spine: darker(13), line: darker(18), band: book.fontColor } : null;
   const spot = landing ?? viewing?.rect;
 
   return (
@@ -111,7 +114,7 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
         book && (
           <>
             <BookFrame
-              colors={{ cover: book.coverColor, spine: darker(13), line: darker(18), band: book.fontColor }}
+              colors={colors!}
               side={side}
               onSide={onSide}
               entrance={false}
@@ -162,6 +165,16 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
             {animated && spot && (
               <div ref={spineRef} aria-hidden="true" className="absolute" style={{ left: spot.left, top: spot.top }}>
                 <BookSpine title={book.title} category={book.category} coverColor={book.coverColor} fontColor={book.fontColor} titleFont={book.titleFont} />
+              </div>
+            )}
+            {/* Tapa suelta que gira al llegar el lomo al centro; queda de canto (invisible) antes y después. */}
+            {animated && (
+              <div
+                ref={coverRef}
+                aria-hidden="true"
+                className="absolute drop-shadow-[0_1.25rem_1.5rem_rgb(0_0_0/0.35)] [transform:perspective(60rem)_rotateY(90deg)]"
+              >
+                <BookCover colors={colors!} className="size-full" />
               </div>
             )}
           </>
