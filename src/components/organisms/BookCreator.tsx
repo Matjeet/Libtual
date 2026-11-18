@@ -1,7 +1,7 @@
 "use client";
 
 import { Feather } from "lucide-react";
-import { useEffect, useEffectEvent, useId, useRef, useState, useTransition, type FormEvent, type ReactNode, type Ref } from "react";
+import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type ReactNode, type Ref } from "react";
 import { flushSync } from "react-dom";
 import { BookSpine } from "@/components/atoms/BookSpine";
 import type { TakenBook } from "@/components/atoms/PaperBag";
@@ -63,7 +63,9 @@ export function BookCreator({ book, onClose, onSaved }: BookCreatorProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const flyRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  // Antes de pintar (justo después de que BookDialog abre el modal): sin el punto de partida, el primer cuadro de la
+  // animación mostraba el libro en el centro de la pantalla.
+  useLayoutEffect(() => {
     if (!book) return;
     // Punto de partida: el libro de la bolsa, medido desde el centro del libro cerrado (el centro del área del libro).
     // offsetLeft/Top no incluyen la animación y son relativos al <dialog>, que ocupa toda la pantalla.
