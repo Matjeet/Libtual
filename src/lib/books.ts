@@ -69,6 +69,8 @@ export type ShelfBook = {
   genre: string;
   comment: string;
   commentFont: string;
+  // Cita del libro; vacía si no la escribió.
+  quote: string;
 };
 
 type BookRow = {
@@ -83,13 +85,14 @@ type BookRow = {
   genre: string;
   comment: string;
   comment_font: string;
+  quote: string;
 };
 
 // Libros del usuario en el orden en que los agregó. Si la lectura falla, la estantería queda vacía en vez de romper la página.
 export async function getUserBooks(supabase: Supabase, userId: string): Promise<ShelfBook[]> {
   const { data, error } = await supabase
     .from("user_books")
-    .select("id, title, category, cover_color, font_color, title_font, author, year, genre, comment, comment_font")
+    .select("id, title, category, cover_color, font_color, title_font, author, year, genre, comment, comment_font, quote")
     .eq("user_id", userId)
     .order("created_at");
   if (error || !data) return [];
@@ -105,5 +108,6 @@ export async function getUserBooks(supabase: Supabase, userId: string): Promise<
     genre: row.genre,
     comment: row.comment,
     commentFont: row.comment_font,
+    quote: row.quote,
   }));
 }
