@@ -19,6 +19,8 @@ export type NewBook = {
   commentFont: string;
   status: string;
   comment: string;
+  // Cita del libro, opcional.
+  quote: string;
 };
 export type SaveBookResult = { id?: string; error?: string };
 
@@ -44,7 +46,9 @@ function isValid(book: NewBook) {
     isFont(book.commentFont, true) &&
     BOOK_STATUSES.some(({ value }) => value === book.status) &&
     typeof book.comment === "string" &&
-    length(book.comment) <= 2000
+    length(book.comment) <= 2000 &&
+    typeof book.quote === "string" &&
+    length(book.quote) <= 300
   );
 }
 
@@ -74,6 +78,7 @@ export async function saveBook(book: NewBook): Promise<SaveBookResult> {
       comment_font: book.commentFont,
       status: book.status,
       comment: book.comment,
+      quote: book.quote.trim(),
     })
     .select("id")
     .single();

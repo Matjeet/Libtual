@@ -190,6 +190,19 @@ describe("BookCreator", () => {
     await user.type(screen.getByRole("spinbutton", { name: "Cantidad de páginas" }), "600");
     await user.click(screen.getByRole("combobox", { name: "Estado" }));
     await user.click(screen.getByRole("option", { name: "Leyendo" }));
+    const quote = screen.getByRole("textbox", { name: "¿Tienes alguna cita del libro?" });
+    expect(quote).toHaveAttribute("maxlength", "300");
+    // La cita se escribe en Arial, no con la fuente de la descripción.
+    expect(quote).toHaveClass("font-[Arial,Helvetica,sans-serif]");
+    expect(quote.style.fontFamily).toBe("");
+    // Su contador, como el de la descripción: en rojo desde el 75 % (225 caracteres).
+    expect(quote).toHaveAccessibleDescription("0/300");
+    fireEvent.change(quote, { target: { value: "a".repeat(224) } });
+    expect(screen.getByText("224/300")).not.toHaveClass("text-[#b42318]");
+    fireEvent.change(quote, { target: { value: "a".repeat(225) } });
+    expect(screen.getByText("225/300")).toHaveClass("text-[#b42318]");
+    fireEvent.change(quote, { target: { value: "" } });
+    await user.type(quote, "Andábamos sin buscarnos.");
     await user.type(screen.getByRole("textbox", { name: "¿Qué quieres expresar de este libro?" }), "Un juego.");
     const sign = screen.getByRole("button", { name: "Firmar" });
     // Firmar + pluma, en ese orden.
@@ -209,6 +222,7 @@ describe("BookCreator", () => {
       commentFont: "lora",
       status: "reading",
       comment: "Un juego.",
+      quote: "Andábamos sin buscarnos.",
     });
     await vi.waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(onSaved).toHaveBeenCalled();

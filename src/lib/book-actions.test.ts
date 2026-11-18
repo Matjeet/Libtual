@@ -34,6 +34,7 @@ const BOOK: NewBook = {
   commentFont: "lora",
   status: "finished",
   comment: "Macondo.",
+  quote: " Muchos años después, frente al pelotón de fusilamiento… ",
 };
 
 beforeEach(() => {
@@ -60,6 +61,7 @@ describe("saveBook", () => {
       comment_font: "lora",
       status: "finished",
       comment: "Macondo.",
+      quote: "Muchos años después, frente al pelotón de fusilamiento…",
     });
     expect(refresh).toHaveBeenCalled();
   });
@@ -80,6 +82,7 @@ describe("saveBook", () => {
       { commentFont: "creepster" },
       { status: "lost" },
       { comment: "a".repeat(2001) },
+      { quote: "a".repeat(301) },
     ];
     for (const change of invalid) expect(await saveBook({ ...BOOK, ...change })).toEqual({ error: "Revisa los datos del libro." });
     expect(db.insert).not.toHaveBeenCalled();
