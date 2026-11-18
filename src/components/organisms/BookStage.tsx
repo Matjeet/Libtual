@@ -141,12 +141,10 @@ export function BookFrame({ colors, side, onSide, entrance, arrows, flyRef, inne
           className={`relative size-full perspective-[200rem] transition-transform duration-500 ease-in-out motion-reduce:transition-none sm:[transform:none] ${entrance ? "motion-safe:animate-[book-center_0.7s_ease-in-out_0.6s_backwards]" : ""} ${side === "left" ? "[transform:translateX(25%)]" : "[transform:translateX(-25%)]"}`}
         >
           <BookPages colors={colors} className="absolute inset-y-0 right-0 h-full w-1/2" />
-          {/* Tapa: gira sobre el lomo. Por fuera es la tapa del libro cerrado; por dentro, la mitad izquierda del libro abierto.
-              will-change: sin una capa propia, Chrome dejaba de pintar la página derecha cuando la tapa quedaba quieta
-              (al terminar la animación de ver un libro). */}
+          {/* Tapa: gira sobre el lomo. Por fuera es la tapa del libro cerrado; por dentro, la mitad izquierda del libro abierto. */}
           <div
             ref={flipperRef}
-            className={`absolute inset-y-0 right-0 w-1/2 origin-left transform-3d will-change-transform [transform:rotateY(-180deg)] ${entrance ? "motion-safe:animate-[book-open_0.7s_ease-in-out_0.6s_both]" : ""}`}
+            className={`absolute inset-y-0 right-0 w-1/2 origin-left transform-3d [transform:rotateY(-180deg)] ${entrance ? "motion-safe:animate-[book-open_0.7s_ease-in-out_0.6s_both]" : ""}`}
           >
             <BookCover colors={colors} className="absolute inset-0 size-full backface-hidden" />
             <BookPages colors={colors} mirrored className="absolute inset-0 size-full backface-hidden [transform:rotateY(180deg)]" />
@@ -213,20 +211,24 @@ export async function bookToShelf({ fly, flipper }: BookParts, spine: HTMLElemen
 }
 
 // Al revés de los pasos 2 y 1: el lomo sale de la estantería (from) y vuela al centro, gira mostrando la tapa y el libro
-// se abre. El libro empieza cerrado y de canto; al terminar quedan sus estilos de siempre (las animaciones se quitan,
-// también el transform en línea con el que quien lo usa lo esconde de canto hasta que empieza la animación).
+// se abre. Quien lo usa ya dejó el libro de canto (transform en línea) para que no se vea antes de empezar.
+// Mientras vuela el lomo, el libro cerrado se arma con estilos en línea y no con animaciones en espera con relleno hacia
+// atrás: Chrome no siempre aplica ese relleno al animar en el compositor y se veía el libro abierto un instante.
 export async function shelfToBook({ fly, inner, flipper, pages }: BookParts, spine: HTMLElement, from: DOMRect) {
-  const opened = [
-    ...pages.map((page) => run(page, { opacity: ["0", getComputedStyle(page).opacity] }, { duration: 300, delay: 1750, fill: "both" })),
-    run(flipper, { transform: ["rotateY(0deg)", "rotateY(-180deg)"] }, { duration: 600, delay: 1250, easing: "ease-in-out", fill: "both" }),
-    run(inner, { transform: ["translateX(-25%)", getComputedStyle(inner).transform] }, { duration: 600, delay: 1250, easing: "ease-in-out", fill: "both" }),
-  ];
+  const open = { inner: getComputedStyle(inner).transform, pages: pages.map((page) => getComputedStyle(page).opacity) };
+  // Sin las transiciones de la página y del carrusel: el libro queda cerrado al instante.
+  for (const element of [inner, ...pages]) element.style.transition = "none";
+  inner.style.transform = "translateX(-25%)";
+  flipper.style.transform = "rotateY(0deg)";
+  for (const page of pages) page.style.opacity = "0";
   // El libro cerrado ocupa la mitad del centro del área del libro (medida sin transformaciones, relativa al modal).
   const closed = new DOMRect(fly.offsetLeft + fly.offsetWidth / 4, fly.offsetTop, fly.offsetWidth / 2, fly.offsetHeight);
   const { dx, dy, scale } = offset(closed, from);
-  const turn = run(fly, { transform: [BOOK_TURN(90), BOOK_TURN(0)] }, { duration: 250, delay: 1000, easing: "ease-out", fill: "both" });
+
+  // 1. El lomo vuela al centro y se pone de canto; al final, el libro cerrado gira y muestra la tapa.
+  const turn = run(fly, { transform: [BOOK_TURN(90), BOOK_TURN(0)] }, { duration: 250, delay: 1000, easing: "ease-out" });
   await Promise.all([
-    ...[...opened, turn].map((animation) => animation.finished),
+    turn.finished,
     run(
       spine,
       [
@@ -238,9 +240,20 @@ export async function shelfToBook({ fly, inner, flipper, pages }: BookParts, spi
       { duration: 1250 },
     ).finished,
   ]);
-  // El lomo queda de canto (invisible) en el centro; el libro vuelve a sus estilos para pasar de página como siempre.
   fly.style.removeProperty("transform");
-  for (const animation of [...opened, turn]) animation.cancel();
+
+  // 2. El libro se abre y aparece lo escrito.
+  const flip = run(flipper, { transform: ["rotateY(0deg)", "rotateY(-180deg)"] }, { duration: 600, easing: "ease-in-out" });
+  const center = run(inner, { transform: ["translateX(-25%)", open.inner] }, { duration: 600, easing: "ease-in-out" });
+  const writing = pages.map((page, index) => run(page, { opacity: ["0", open.pages[index]] }, { duration: 300, delay: 500 }));
+  await Promise.all([flip, center, ...writing].map((animation) => animation.finished));
+  inner.style.removeProperty("transform");
+  flipper.style.removeProperty("transform");
+  for (const page of pages) page.style.removeProperty("opacity");
+  for (const element of [inner, ...pages]) element.style.removeProperty("transition");
+  // Se quitan las animaciones que pisarían el carrusel de celular y el paso de página. La del giro y la de la tapa se
+  // quedan (terminan en sus estilos de siempre): al quitar la de la tapa, Chrome dejaba de pintar la página derecha.
+  for (const animation of [center, ...writing]) animation.cancel();
 }
 
 // El lomo de un libro en la estantería. Lo busca unos instantes por si la página todavía se está refrescando.
