@@ -33,7 +33,7 @@ type BookViewerProps = { viewing: ViewedBook | null; onClose: () => void };
 // Ver un libro de la estantería: el lomo sale de su lugar (que queda vacío) y vuela al centro, gira mostrando la tapa y el
 // libro se abre, igual de grande y con el mismo carrusel en celular que al crear un libro. Al cerrar (la X, el fondo en
 // pantallas anchas o Escape) hace el camino inverso y vuelve a su lugar. Sin animaciones, aparece y desaparece al instante.
-// Página izquierda: el título (con su fuente, siempre en negro) y abajo autor, año y género.
+// Página izquierda: el título (con su fuente, siempre en negro), abajo autor, año y género y, si la hay, la cita del libro.
 // Página derecha: el comentario, escrito directo sobre la hoja con su fuente y justificado.
 export function BookViewer({ viewing, onClose }: BookViewerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -123,8 +123,8 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
               innerRef={innerRef}
               flipperRef={flipperRef}
             >
-              <div ref={leftRef} onFocus={() => onSide("left")} className={`flex flex-col p-2 @container sm:p-4 ${pageClass("left", side, false)}`}>
-                <div className="flex h-1/2 shrink-0 items-center justify-center overflow-hidden [container-type:size]">
+              <div ref={leftRef} onFocus={() => onSide("left")} className={`flex flex-col overflow-y-auto p-4 [scrollbar-width:thin] @container sm:p-6 lg:p-10 ${pageClass("left", side, false)}`}>
+                <div className="flex h-1/2 min-h-24 items-center justify-center overflow-hidden [container-type:size]">
                   <h2
                     className={`text-center leading-tight text-black [overflow-wrap:anywhere] [text-wrap:balance] ${titleSize(book.title)}`}
                     style={{ fontFamily: family(book.titleFont) }}
@@ -132,23 +132,36 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
                     {book.title}
                   </h2>
                 </div>
-                <dl className="mt-auto flex flex-col gap-1 text-base text-black @lg:text-lg">
-                  {[
-                    ["Autor", book.author],
-                    ["Año", yearLabel(book.year)],
-                    ["Género", book.genre],
-                  ].map(([term, value]) => (
-                    <div key={term}>
-                      <dt className="sr-only">{term}</dt>
-                      <dd className="flex gap-2">
-                        <span aria-hidden="true">—</span>
-                        <span className="min-w-0 [overflow-wrap:anywhere]">{value}</span>
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
+                {/* Abajo: los datos a la izquierda y la cita a la derecha; en una página angosta, la cita va arriba de los datos.
+                    En pantallas bajas el título cede espacio (su letra se achica) y, si aun así no cabe, la página tiene scroll. */}
+                <div className="mt-auto flex shrink-0 flex-col-reverse gap-4 pt-4 @md:flex-row @md:items-end @md:gap-8">
+                  <dl className="flex shrink-0 flex-col gap-1 text-base text-black @md:max-w-2/5 @lg:text-lg">
+                    {[
+                      ["Autor", book.author],
+                      ["Año", yearLabel(book.year)],
+                      ["Género", book.genre],
+                    ].map(([term, value]) => (
+                      <div key={term}>
+                        <dt className="sr-only">{term}</dt>
+                        <dd className="flex gap-2">
+                          <span aria-hidden="true">—</span>
+                          <span className="min-w-0 [overflow-wrap:anywhere]">{value}</span>
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                  {book.quote && (
+                    <blockquote
+                      tabIndex={0}
+                      aria-label="Cita del libro"
+                      className="font-[Georgia,'Times_New_Roman',serif] whitespace-pre-line text-base text-neutral-600 italic outline-none [overflow-wrap:anywhere] focus-visible:ring-2 focus-visible:ring-(--ink)/40 @md:ml-auto @md:w-3/5 @lg:text-lg @xl:text-xl"
+                    >
+                      <p>“{book.quote}”</p>
+                    </blockquote>
+                  )}
+                </div>
               </div>
-              <div ref={rightRef} onFocus={() => onSide("right")} className={`p-2 @container sm:p-4 ${pageClass("right", side, false)}`}>
+              <div ref={rightRef} onFocus={() => onSide("right")} className={`p-4 @container sm:p-6 lg:p-10 ${pageClass("right", side, false)}`}>
                 {/* Con scroll si no cabe; se puede enfocar para leerlo con el teclado. */}
                 <div
                   tabIndex={0}

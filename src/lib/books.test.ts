@@ -44,6 +44,7 @@ describe("getUserBooks", () => {
       genre: "Novela",
       comment: "Un juego.",
       comment_font: "caveat",
+      quote: "Andábamos sin buscarnos.",
     };
     const { supabase, query } = client({ data: [row], error: null });
     expect(await getUserBooks(supabase, "user-1")).toEqual([
@@ -59,6 +60,7 @@ describe("getUserBooks", () => {
         genre: "Novela",
         comment: "Un juego.",
         commentFont: "caveat",
+        quote: "Andábamos sin buscarnos.",
       },
     ]);
     expect(query).toEqual({ table: "user_books", user: "user-1", order: "created_at" });

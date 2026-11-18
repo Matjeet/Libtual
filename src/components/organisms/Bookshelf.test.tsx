@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { Bookshelf, OpenShelfBook } from "./Bookshelf";
 
-const DETAILS = { author: "Julio Cortázar", year: 1963, genre: "Novela", comment: "Un juego.", commentFont: "lora" };
+const DETAILS = { author: "Julio Cortázar", year: 1963, genre: "Novela", comment: "Un juego.", commentFont: "lora", quote: "" };
 
 describe("Bookshelf", () => {
   test("es una región con título y, sin libros, no tiene scroll", () => {
