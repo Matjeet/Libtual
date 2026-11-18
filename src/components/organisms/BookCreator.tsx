@@ -374,7 +374,7 @@ function OpenBook({ book, side, onSide, onSaved, onShelved, ref }: OpenBookProps
                 onChange={(event) => setQuote(event.target.value)}
                 aria-describedby={`${quoteId}-count`}
                 // Siempre en Arial: no usa la fuente elegida para la descripción.
-                className="shrink-0 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 font-[Arial,Helvetica,sans-serif] text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink) @lg:p-3 @lg:text-lg @xl:text-xl"
+                className="shrink-0 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 pr-4 font-[Arial,Helvetica,sans-serif] text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink) @lg:p-3 @lg:pr-5 @lg:text-lg @xl:text-xl"
               />
               <p id={`${quoteId}-count`} className={`self-end text-sm ${quote.length >= QUOTE_WARNING ? "font-semibold text-[#b42318]" : ""}`}>
                 {quote.length}/{QUOTE_MAX}
@@ -390,7 +390,7 @@ function OpenBook({ book, side, onSide, onSaved, onShelved, ref }: OpenBookProps
                 onChange={(event) => setComment(event.target.value)}
                 aria-describedby={`${commentId}-count`}
                 // En páginas anchas (libro grande) la letra crece con la hoja, como en el formulario.
-                className="min-h-28 flex-1 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink) @lg:p-3 @lg:text-lg @xl:text-xl"
+                className="min-h-28 flex-1 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 pr-4 text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink) @lg:p-3 @lg:pr-5 @lg:text-lg @xl:text-xl"
                 style={{ fontFamily: fontFamily(commentFont) }}
               />
               <p id={`${commentId}-count`} className={`self-end text-sm ${comment.length >= COMMENT_WARNING ? "font-semibold text-[#b42318]" : ""}`}>

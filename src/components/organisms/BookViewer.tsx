@@ -162,12 +162,13 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
                 </div>
               </div>
               <div ref={rightRef} onFocus={() => onSide("right")} className={`p-4 @container sm:p-6 lg:p-10 ${pageClass("right", side, false)}`}>
-                {/* Con scroll si no cabe; se puede enfocar para leerlo con el teclado. */}
+                {/* Con scroll si no cabe; se puede enfocar para leerlo con el teclado. pr: aire entre el texto y la barra de scroll,
+                    que en muchos sistemas se dibuja encima del contenido. */}
                 <div
                   tabIndex={0}
                   role="region"
                   aria-label="Comentario"
-                  className="size-full overflow-y-auto whitespace-pre-line text-justify text-base text-black outline-none [hyphens:auto] [scrollbar-width:thin] focus-visible:ring-2 focus-visible:ring-(--ink)/40 @lg:text-lg @xl:text-xl"
+                  className="size-full overflow-y-auto pr-3 whitespace-pre-line sm:pr-4 text-justify text-base text-black outline-none [hyphens:auto] [scrollbar-width:thin] focus-visible:ring-2 focus-visible:ring-(--ink)/40 @lg:text-lg @xl:text-xl"
                   style={{ fontFamily: family(book.commentFont) }}
                 >
                   {book.comment}
