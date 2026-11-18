@@ -14,8 +14,10 @@ import { BOOK_GENRES, BOOK_STATUSES, bookCategory, type BookCategory } from "@/l
 import { hexToHsl, hslColor, hslToHex, type Hsl } from "@/lib/colors";
 
 const COMMENT_MAX = 2000;
-// Desde aquí el contador se pone rojo: avisa que se acerca al límite.
+const QUOTE_MAX = 300;
+// Desde aquí el contador se pone rojo: avisa que se acerca al límite (al 75 %, en la descripción y en la cita).
 const COMMENT_WARNING = 1500;
+const QUOTE_WARNING = 225;
 // Letras claras, como un título dorado sobre la tapa.
 const TITLE_COLOR: Hsl = { h: 45, s: 80, l: 90 };
 // Controles sobre el papel: mismos colores en modo claro y oscuro.
@@ -103,6 +105,7 @@ function OpenBook({ book, side, onSide, onSaved, onShelved, ref }: OpenBookProps
   // Errores de los campos, por id del input.
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [comment, setComment] = useState("");
+  const [quote, setQuote] = useState("");
   const [saving, startSaving] = useTransition();
   const [error, setError] = useState<string>();
   const [saved, setSaved] = useState<SavedBook | null>(null);
@@ -118,6 +121,7 @@ function OpenBook({ book, side, onSide, onSaved, onShelved, ref }: OpenBookProps
   // Lomo real del libro nuevo, escondido mientras vuela el de la animación.
   const hiddenSpine = useRef<HTMLElement | null>(null);
   const commentId = useId();
+  const quoteId = useId();
   const fieldId = useId();
   const coverHsl = cover ?? hexToHsl(book.colors.cover);
   const darker = (by: number) => hslColor({ ...coverHsl, l: Math.max(coverHsl.l - by, 0) });
@@ -158,6 +162,7 @@ function OpenBook({ book, side, onSide, onSaved, onShelved, ref }: OpenBookProps
       commentFont,
       status: text("status"),
       comment,
+      quote,
     };
     setError(undefined);
     startSaving(async () => {
@@ -351,8 +356,27 @@ function OpenBook({ book, side, onSide, onSaved, onShelved, ref }: OpenBookProps
             <div
               ref={commentPageRef}
               onFocus={() => onSide("right")}
-              className={`flex flex-col gap-2 p-2 @container sm:p-4 ${pageClass("right", side, true)}`}
+              // overflow-y-auto: en pantallas bajas la página hace scroll en vez de aplastar la descripción (mínimo de 4 renglones).
+              className={`flex flex-col gap-2 overflow-y-auto p-2 [scrollbar-width:thin] @container sm:p-4 ${pageClass("right", side, true)}`}
             >
+              {/* La cita va primero, con pocas líneas; la descripción ocupa el resto de la página. */}
+              <label htmlFor={quoteId} className="font-semibold sm:text-lg">
+                ¿Tienes alguna cita del libro?
+              </label>
+              <textarea
+                id={quoteId}
+                name="quote"
+                rows={3}
+                maxLength={QUOTE_MAX}
+                value={quote}
+                onChange={(event) => setQuote(event.target.value)}
+                aria-describedby={`${quoteId}-count`}
+                className="shrink-0 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink) @lg:p-3 @lg:text-lg @xl:text-xl"
+                style={{ fontFamily: fontFamily(commentFont) }}
+              />
+              <p id={`${quoteId}-count`} className={`self-end text-sm ${quote.length >= QUOTE_WARNING ? "font-semibold text-[#b42318]" : ""}`}>
+                {quote.length}/{QUOTE_MAX}
+              </p>
               <label htmlFor={commentId} className="font-semibold sm:text-lg">
                 ¿Qué quieres expresar de este libro?
               </label>
@@ -364,7 +388,7 @@ function OpenBook({ book, side, onSide, onSaved, onShelved, ref }: OpenBookProps
                 onChange={(event) => setComment(event.target.value)}
                 aria-describedby={`${commentId}-count`}
                 // En páginas anchas (libro grande) la letra crece con la hoja, como en el formulario.
-                className="min-h-0 flex-1 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink) @lg:p-3 @lg:text-lg @xl:text-xl"
+                className="min-h-28 flex-1 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink) @lg:p-3 @lg:text-lg @xl:text-xl"
                 style={{ fontFamily: fontFamily(commentFont) }}
               />
               <p id={`${commentId}-count`} className={`self-end text-sm ${comment.length >= COMMENT_WARNING ? "font-semibold text-[#b42318]" : ""}`}>
