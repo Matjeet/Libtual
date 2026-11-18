@@ -371,8 +371,8 @@ function OpenBook({ book, side, onSide, onSaved, onShelved, ref }: OpenBookProps
                 value={quote}
                 onChange={(event) => setQuote(event.target.value)}
                 aria-describedby={`${quoteId}-count`}
-                className="shrink-0 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink) @lg:p-3 @lg:text-lg @xl:text-xl"
-                style={{ fontFamily: fontFamily(commentFont) }}
+                // Siempre en Arial: no usa la fuente elegida para la descripción.
+                className="shrink-0 resize-none rounded-md border border-(--ink)/20 bg-white/40 p-2 font-[Arial,Helvetica,sans-serif] text-base outline-none transition [scrollbar-width:thin] focus:border-(--ink) @lg:p-3 @lg:text-lg @xl:text-xl"
               />
               <p id={`${quoteId}-count`} className={`self-end text-sm ${quote.length >= QUOTE_WARNING ? "font-semibold text-[#b42318]" : ""}`}>
                 {quote.length}/{QUOTE_MAX}

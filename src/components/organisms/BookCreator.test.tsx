@@ -192,6 +192,9 @@ describe("BookCreator", () => {
     await user.click(screen.getByRole("option", { name: "Leyendo" }));
     const quote = screen.getByRole("textbox", { name: "¿Tienes alguna cita del libro?" });
     expect(quote).toHaveAttribute("maxlength", "300");
+    // La cita se escribe en Arial, no con la fuente de la descripción.
+    expect(quote).toHaveClass("font-[Arial,Helvetica,sans-serif]");
+    expect(quote.style.fontFamily).toBe("");
     // Su contador, como el de la descripción: en rojo desde el 75 % (225 caracteres).
     expect(quote).toHaveAccessibleDescription("0/300");
     fireEvent.change(quote, { target: { value: "a".repeat(224) } });
