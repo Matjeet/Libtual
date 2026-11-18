@@ -33,7 +33,8 @@ export function BookSpine({ title, category, coverColor, fontColor, titleFont, c
       <span aria-hidden="true" className="absolute inset-x-0 top-2 h-2.5 border-y-2 border-current" />
       <span aria-hidden="true" className="absolute inset-x-0 bottom-2 h-2.5 border-y-2 border-current" />
       {/* py-[3px]: en vertical el ancho es el alto de línea y el padding de "bloque" es el horizontal; el aire evita recortar descendentes y adornos. */}
-      <span className="rotate-180 truncate py-[3px] leading-none [writing-mode:vertical-rl]" style={{ fontFamily: family }}>
+      {/* text-center: el título va centrado a lo alto del lomo también fuera de un botón (los botones lo centran solos). */}
+      <span className="rotate-180 truncate py-[3px] text-center leading-none [writing-mode:vertical-rl]" style={{ fontFamily: family }}>
         {title}
       </span>
     </div>

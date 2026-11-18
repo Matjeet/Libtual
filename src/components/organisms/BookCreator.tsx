@@ -1,36 +1,23 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Feather, X } from "lucide-react";
+import { Feather } from "lucide-react";
 import { useEffect, useEffectEvent, useId, useRef, useState, useTransition, type FormEvent, type ReactNode, type Ref } from "react";
 import { flushSync } from "react-dom";
-import { BookCover, BookPages } from "@/components/atoms/BookParts";
 import { BookSpine } from "@/components/atoms/BookSpine";
 import type { TakenBook } from "@/components/atoms/PaperBag";
 import { Combobox, type ComboboxOption } from "@/components/molecules/Combobox";
 import { HslSliders } from "@/components/molecules/HslSliders";
+import { BookDialog, BookFrame, bookToShelf, canAnimate, closeBook, findShelvedBook, pageClass, settle, type BookSide } from "@/components/organisms/BookStage";
 import { saveBook, type NewBook } from "@/lib/book-actions";
 import { BOOK_FONTS, FONT_GROUPS, fontFamily, type BookFont } from "@/lib/book-fonts";
 import { BOOK_GENRES, BOOK_STATUSES, bookCategory, type BookCategory } from "@/lib/books";
 import { hexToHsl, hslColor, hslToHex, type Hsl } from "@/lib/colors";
-import { useHorizontalSwipe } from "@/lib/use-horizontal-swipe";
 
 const COMMENT_MAX = 2000;
 // Desde aquí el contador se pone rojo: avisa que se acerca al límite.
 const COMMENT_WARNING = 1500;
 // Letras claras, como un título dorado sobre la tapa.
 const TITLE_COLOR: Hsl = { h: 45, s: 80, l: 90 };
-// Desde sm se ve el libro completo; por debajo, una página a la vez.
-const WIDE = "(min-width: 40rem)";
-// Distancia mínima (px) de un deslizamiento para pasar de página, como en el carrusel de la habitación.
-const SWIPE = 40;
-// Flechas para pasar de página: solo con mouse y en celular (con el dedo se desliza).
-// Página que no está en pantalla en celular: su borde asoma, pero sin controles visibles ni tocables.
-// Sigue en el orden de Tab: al enfocarla se pasa a ella.
-const OFF_PAGE = "pointer-events-none opacity-0";
-// Lo escrito aparece cuando el libro ya se abrió. Sin fill final, para que la transición de opacidad al pasar de página funcione.
-const PAGE_FADE_IN = "motion-safe:animate-[fade-in_0.4s_ease-out_1.3s_backwards]";
-const ARROW =
-  "absolute top-[calc(50%+1.5rem)] hidden size-11 -translate-y-1/2 items-center justify-center rounded-full bg-card text-foreground shadow-md ring-1 ring-foreground/10 transition hover:bg-surface pointer-fine:flex sm:pointer-fine:hidden";
 // Controles sobre el papel: mismos colores en modo claro y oscuro.
 // En páginas anchas (libro grande) los campos crecen con la letra.
 const FIELD = "h-11 w-full min-w-0 rounded-md border border-(--ink)/30 bg-white/60 px-2 text-base outline-none transition focus:border-(--ink) aria-invalid:border-[#b42318] aria-invalid:ring-1 aria-invalid:ring-[#b42318] @lg:h-12 @lg:px-3 @lg:text-lg";
@@ -56,7 +43,6 @@ function fieldError(input: HTMLInputElement) {
   return `Escribe un número entre ${input.min} y ${input.max}.`;
 }
 
-type Page = "form" | "comment";
 // Libro ya guardado: su id (para encontrarlo en la estantería) y cómo se ve su lomo.
 type SavedBook = { id: string; title: string; category: BookCategory; coverColor: string; fontColor: string; titleFont: string };
 
@@ -68,25 +54,15 @@ type BookCreatorProps = {
   onSaved?: () => void;
 };
 
-// Creación de un libro: el libro que salió de la bolsa vuela al centro de la pantalla y se abre.
-// Animación (keyframes en globals.css): book-fly lo trae desde la bolsa, después book-open gira la tapa
-// sobre el lomo mientras book-center corre el libro para dejarlo centrado ya abierto; al final aparecen las páginas escritas.
-// Sin animaciones (movimiento reducido) se muestra directamente abierto: los estilos base son el estado final.
+// Creación de un libro: el libro que salió de la bolsa vuela al centro de la pantalla y se abre (BookFrame con su
+// animación de entrada); al final aparecen las páginas escritas.
 // Al firmar se guarda el libro; el libro se cierra, gira para mostrar el lomo y vuela a su lugar en la estantería.
 export function BookCreator({ book, onClose, onSaved }: BookCreatorProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const flyRef = useRef<HTMLDivElement>(null);
-  const backdropPress = useRef(false);
-  // En celulares se ve una página a la vez: el formulario o la descripción.
-  const [page, setPage] = useState<Page>("form");
-  const dragStart = useRef<number | null>(null);
-  // Sin esto, en Chrome para celular el primer toque después de deslizar no hace nada.
-  useHorizontalSwipe(dialogRef);
 
   useEffect(() => {
     if (!book) return;
-    const dialog = dialogRef.current!;
-    if (!dialog.open) dialog.showModal();
     // Punto de partida: el libro de la bolsa, medido desde el centro del libro cerrado (el centro del área del libro).
     // offsetLeft/Top no incluyen la animación y son relativos al <dialog>, que ocupa toda la pantalla.
     const fly = flyRef.current!;
@@ -97,61 +73,26 @@ export function BookCreator({ book, onClose, onSaved }: BookCreatorProps) {
   }, [book]);
 
   return (
-    <dialog
-      ref={dialogRef}
-      aria-label="Nuevo libro"
-      onClose={() => {
-        setPage("form");
-        onClose();
-      }}
-      // Carrusel en celular: deslizar en cualquier parte (dedo o arrastre con el mouse), también fuera del libro, pasa a la otra página.
-      // Las barras de color y los campos de texto usan el gesto horizontal: ahí no cuenta.
-      onPointerDown={(event) => {
-        // El libro y el botón no cubren toda la pantalla: si el destino es el <dialog> mismo, se tocó el fondo.
-        backdropPress.current = event.target === event.currentTarget;
-        dragStart.current = (event.target as Element).closest("input, textarea, select") ? null : event.clientX;
-      }}
-      onPointerUp={(event) => {
-        if (dragStart.current === null) return;
-        const distance = event.clientX - dragStart.current;
-        dragStart.current = null;
-        if (Math.abs(distance) >= SWIPE) setPage(distance < 0 ? "comment" : "form");
-      }}
-      onPointerCancel={() => (dragStart.current = null)}
-      onDragStart={(event) => event.preventDefault()}
-      onClick={(event) => {
-        // En celular el fondo es para deslizar: solo se cierra con la X.
-        if (backdropPress.current && event.target === event.currentTarget && window.matchMedia(WIDE).matches) dialogRef.current?.close();
-      }}
-      // pt-16: el libro queda debajo del botón de cerrar. Flex centra el libro aunque sea más ancho que la pantalla (celular).
-      // touch-pan-y: el gesto horizontal lo manejan los eventos; el vertical sigue haciendo scroll del formulario.
-      className="fixed inset-0 m-0 size-full max-h-none max-w-none touch-pan-y items-center justify-center overflow-clip bg-transparent px-0 pb-4 pt-16 backdrop:bg-black/40 open:flex motion-safe:backdrop:animate-[fade-in_0.4s_ease-out_both]"
-    >
-      <button
-        type="button"
-        aria-label="Cerrar"
-        onClick={() => dialogRef.current?.close()}
-        className="absolute right-4 top-4 inline-flex size-11 items-center justify-center rounded-full bg-card text-foreground shadow-md transition hover:bg-surface"
-      >
-        <X aria-hidden="true" className="size-6" />
-      </button>
+    <BookDialog dialogRef={dialogRef} label="Nuevo libro" showing={book} onClose={onClose}>
       {/* Se desmonta al cerrar: cada libro nuevo empieza con el formulario vacío. */}
-      {book && <OpenBook book={book} page={page} onPage={setPage} onSaved={onSaved} onShelved={() => dialogRef.current?.close()} ref={flyRef} />}
-    </dialog>
+      {(side, setSide) =>
+        book && <OpenBook book={book} side={side} onSide={setSide} onSaved={onSaved} onShelved={() => dialogRef.current?.close()} ref={flyRef} />
+      }
+    </BookDialog>
   );
 }
 
 type OpenBookProps = {
   book: TakenBook;
-  page: Page;
-  onPage: (page: Page) => void;
+  side: BookSide;
+  onSide: (side: BookSide) => void;
   onSaved?: () => void;
   // Terminó la animación hacia la estantería: se cierra el modal.
   onShelved: () => void;
   ref: Ref<HTMLDivElement>;
 };
 
-function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: OpenBookProps) {
+function OpenBook({ book, side, onSide, onSaved, onShelved, ref }: OpenBookProps) {
   // null = todavía el color del libro de la bolsa (con su lomo y bordes originales).
   const [cover, setCover] = useState<Hsl | null>(null);
   const [titleColor, setTitleColor] = useState(TITLE_COLOR);
@@ -236,15 +177,13 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
     });
   }
 
-  // Animación hacia la estantería (Web Animations API, para encadenar los pasos). Sin animaciones, cierra al instante.
+  // Animación hacia la estantería. Sin animaciones, cierra al instante.
   const shelve = useEffectEvent(async (id: string) => {
     if (shelving.current) return;
     shelving.current = true;
     const fly = flyRef.current!;
     const dialog = fly.closest("dialog")!;
-    const animated = typeof dialog.animate === "function" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const run = (element: Element, keyframes: Keyframe[] | PropertyIndexedKeyframes, options: KeyframeAnimationOptions) =>
-      element.animate(keyframes, { fill: "forwards", ...options }).finished;
+    const parts = { fly, inner: innerRef.current!, flipper: flipperRef.current!, pages: [formPageRef.current!, commentPageRef.current!] };
 
     // La página se refrescó al guardar: el lomo del libro nuevo ya está en la estantería. Se esconde hasta que llegue el que vuela.
     const target = await findShelvedBook(id);
@@ -252,40 +191,14 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
       target.style.visibility = "hidden";
       hiddenSpine.current = target;
     }
-    if (animated) {
-      // 1. Se borra lo escrito y el libro se cierra (al revés de como se abrió).
-      const inner = innerRef.current!;
-      const pages = [formPageRef.current!, commentPageRef.current!];
-      await Promise.all([
-        ...pages.map((page) => run(page, { opacity: [getComputedStyle(page).opacity, "0"] }, { duration: 200 })),
-        run(flipperRef.current!, { transform: ["rotateY(-180deg)", "rotateY(0deg)"] }, { duration: 600, delay: 150, easing: "ease-in-out" }),
-        run(inner, { transform: [getComputedStyle(inner).transform, "translateX(-25%)"] }, { duration: 600, delay: 150, easing: "ease-in-out" }),
-      ]);
+    if (canAnimate()) {
+      await closeBook(parts);
       if (target) {
         // En celular la estantería entra al carrusel: se espera a que termine de moverse para medir su lugar.
         await settle(target);
-        const from = flipperRef.current!.getBoundingClientRect();
         const to = target.getBoundingClientRect();
         flushSync(() => setLanding(to));
-        const dx = from.left + from.width / 2 - (to.left + to.width / 2);
-        const dy = from.top + from.height / 2 - (to.top + to.height / 2);
-        const scale = from.height / to.height;
-        const at = (x: number, y: number, s: number, turn: number) => `translate(${x}px, ${y}px) scale(${s}) perspective(60rem) rotateY(${turn}deg)`;
-        // 2. El libro gira: la tapa se va de canto y aparece el lomo, que vuela a su lugar mientras se aclara el fondo.
-        await Promise.all([
-          run(fly, { transform: ["perspective(60rem) rotateY(0deg)", "perspective(60rem) rotateY(90deg)"] }, { duration: 250, easing: "ease-in" }),
-          run(
-            spineRef.current!,
-            [
-              { offset: 0, transform: at(dx, dy, scale, -90) },
-              { offset: 0.2, transform: at(dx, dy, scale, -90), easing: "ease-out" },
-              { offset: 0.4, transform: at(dx, dy, scale, 0), easing: "cubic-bezier(0.5, 0, 0.3, 1)" },
-              { offset: 1, transform: at(0, 0, 1, 0) },
-            ],
-            { duration: 1250 },
-          ),
-          run(dialog, { opacity: [1, 0] }, { duration: 500, delay: 750, pseudoElement: "::backdrop" }),
-        ]);
+        await bookToShelf(parts, spineRef.current!, to, dialog);
       }
     }
     reveal();
@@ -307,39 +220,25 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
 
   return (
     <>
-      {/* Celular: cada página en proporción 3:4 y el libro abierto más ancho que la pantalla; solo se ve la página actual.
-          Con mouse, la página es más angosta para dejar lugar a las flechas a los lados.
-          Desde sm: el libro abierto completo, lo más grande que quepa (3:2; en pantallas bajas se estira a lo ancho). */}
-      <div
-        ref={(element) => {
+      <BookFrame
+        colors={colors}
+        side={side}
+        onSide={onSide}
+        entrance
+        arrows={{ right: "Ver la descripción", left: "Ver el formulario" }}
+        flyRef={(element) => {
           flyRef.current = element;
           if (typeof ref === "function") ref(element);
           else if (ref) ref.current = element;
         }}
-        className="h-[min(calc(100dvh-6rem),calc(var(--page)*4/3))] w-[calc(var(--page)*2)] shrink-0 [--page:min(100vw-2rem,28rem)] pointer-fine:[--page:min(100vw-8rem,28rem)] drop-shadow-[0_1.25rem_1.5rem_rgb(0_0_0/0.35)] sm:h-[min(calc(100dvh-5rem),calc(min(100vw-2rem,max((100dvh-5rem)*1.5,40rem))/1.5))] sm:w-[min(calc(100vw-2rem),max(calc((100dvh-5rem)*1.5),40rem))] motion-safe:animate-[book-fly_0.6s_cubic-bezier(0.3,0.7,0.3,1)_both]"
+        innerRef={innerRef}
+        flipperRef={flipperRef}
       >
-        {/* En celular se corre un cuarto para centrar la página actual. Sin fill final para que la transición al pasar de página funcione.
-            Al enfocar un campo de la otra página (con Tab) se pasa a esa página. */}
-        <div
-          ref={innerRef}
-          className={`relative size-full perspective-[200rem] transition-transform duration-500 ease-in-out motion-reduce:transition-none sm:[transform:none] motion-safe:animate-[book-center_0.7s_ease-in-out_0.6s_backwards] ${page === "form" ? "[transform:translateX(25%)]" : "[transform:translateX(-25%)]"}`}
-        >
-          <BookPages colors={colors} className="absolute inset-y-0 right-0 h-full w-1/2" />
-          {/* Tapa: gira sobre el lomo. Por fuera es la tapa del libro cerrado; por dentro, la mitad izquierda del libro abierto. */}
-          <div ref={flipperRef} className="absolute inset-y-0 right-0 w-1/2 origin-left transform-3d [transform:rotateY(-180deg)] motion-safe:animate-[book-open_0.7s_ease-in-out_0.6s_both]">
-            <BookCover colors={colors} className="absolute inset-0 size-full backface-hidden" />
-            <BookPages colors={colors} mirrored className="absolute inset-0 size-full backface-hidden [transform:rotateY(180deg)]" />
-          </div>
-
           {/* Lo escrito en las hojas: aparece cuando el libro ya está abierto. Sobre la hoja de arriba de cada página.
               Un solo formulario con las dos páginas; se envía con Firmar. */}
           {/* noValidate: los errores se muestran bajo cada campo; al escribir en un campo se quita su error. */}
           <form onSubmit={sign} onInput={(event) => clearError((event.target as HTMLElement).id)} noValidate aria-label="Datos del libro" className="contents">
-            <div
-              ref={formPageRef}
-              onFocus={() => setPage("form")}
-              className={`absolute bottom-[10%] left-[5%] right-1/2 top-[6%] text-(--ink) scheme-light transition-opacity duration-500 sm:pointer-events-auto sm:opacity-100 ${PAGE_FADE_IN} ${page === "form" ? "" : OFF_PAGE}`}
-            >
+            <div ref={formPageRef} onFocus={() => onSide("left")} className={pageClass("left", side, true)}>
               <div className="size-full overflow-y-auto [scrollbar-width:thin] @container">
                 {/* min-h-full + content-evenly: si sobra alto (libro grande), las filas se reparten en toda la página en vez de quedar arriba.
                     Cuando no cabe, no sobra espacio y la página hace scroll como siempre. */}
@@ -451,8 +350,8 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
             </div>
             <div
               ref={commentPageRef}
-              onFocus={() => setPage("comment")}
-              className={`absolute bottom-[10%] left-1/2 right-[5%] top-[6%] flex flex-col gap-2 p-2 text-(--ink) scheme-light @container transition-opacity duration-500 sm:pointer-events-auto sm:p-4 sm:opacity-100 ${PAGE_FADE_IN} ${page === "comment" ? "" : OFF_PAGE}`}
+              onFocus={() => onSide("right")}
+              className={`flex flex-col gap-2 p-2 @container sm:p-4 ${pageClass("right", side, true)}`}
             >
               <label htmlFor={commentId} className="font-semibold sm:text-lg">
                 ¿Qué quieres expresar de este libro?
@@ -473,8 +372,7 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
               </p>
             </div>
           </form>
-        </div>
-      </div>
+      </BookFrame>
       {/* Lomo que vuela a la estantería: se dibuja en el lugar final y la animación lo trae desde el libro cerrado. */}
       {saved && landing && (
         <div ref={spineRef} aria-hidden="true" className="absolute" style={{ left: landing.left, top: landing.top }}>
@@ -486,15 +384,6 @@ function OpenBook({ book, page, onPage: setPage, onSaved, onShelved, ref }: Open
             titleFont={saved.titleFont}
           />
         </div>
-      )}
-      {page === "form" ? (
-        <button type="button" aria-label="Ver la descripción" onClick={() => setPage("comment")} className={`right-2 ${ARROW}`}>
-          <ChevronRight aria-hidden="true" className="size-6" />
-        </button>
-      ) : (
-        <button type="button" aria-label="Ver el formulario" onClick={() => setPage("form")} className={`left-2 ${ARROW}`}>
-          <ChevronLeft aria-hidden="true" className="size-6" />
-        </button>
       )}
     </>
   );
@@ -514,21 +403,4 @@ function Field({ label, htmlFor, error, className = "", children }: { label: str
       )}
     </div>
   );
-}
-
-// El lomo del libro guardado en la estantería. Lo busca unos instantes por si la página todavía se está refrescando.
-async function findShelvedBook(id: string) {
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const spine = document.querySelector<HTMLElement>(`[data-book-id="${id}"] > *`);
-    if (spine) return spine;
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  return null;
-}
-
-// Espera a que terminen las animaciones de los contenedores del elemento (por ejemplo, el carrusel de la habitación).
-function settle(element: Element) {
-  const animations: Animation[] = [];
-  for (let node: Element | null = element; node; node = node.parentElement) animations.push(...(node.getAnimations?.() ?? []));
-  return Promise.all(animations.filter((animation) => animation.effect?.getTiming().iterations !== Infinity).map((animation) => animation.finished.catch(() => {})));
 }

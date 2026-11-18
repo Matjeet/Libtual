@@ -1,4 +1,8 @@
+"use client";
+
+import { createContext, use, type MouseEvent } from "react";
 import { BookSpine } from "@/components/atoms/BookSpine";
+import type { ViewedBook } from "@/components/organisms/BookViewer";
 import type { ShelfBook } from "@/lib/books";
 
 // Alto estándar de cada piso (hueco + tablón). La estantería mide un número entero de pisos más el tablón de arriba
@@ -10,8 +14,29 @@ const FRAME_HEIGHT = "h-[calc(max(10.5rem,round(down,100%-1.25rem,10.5rem))+1.25
 // visibles quedan ocultos. Agregar un piso cuando el último se llene y habilitar el scroll solo entonces.
 const SHELVES = 10;
 
+// Cada libro tiene su propia perspectiva, centrada en él: todos se ven sacar igual, estén donde estén.
+const PERSPECTIVE = "perspective-[500px]";
+// El libro sale hacia adelante y se inclina sobre su base (la parte de arriba hacia afuera): con el mouse encima (hover)
+// o enfocado con el teclado.
+const PULL =
+  "origin-bottom transition-transform duration-300 ease-out group-hover:[transform:translateZ(10px)_rotateX(-18deg)] focus-visible:[transform:translateZ(10px)_rotateX(-18deg)] motion-reduce:transition-none";
+
+// Abre un libro de la estantería. Lo da RoomScene, que muestra el libro abierto fuera del carrusel de la habitación.
+export const OpenShelfBook = createContext<((viewing: ViewedBook) => void) | null>(null);
+
+// Lugar del libro en pantalla sin la inclinación del hover: su caja dentro del <li> (relative), que no se transforma.
+function slotRect(slot: HTMLElement) {
+  const shelf = slot.parentElement!.getBoundingClientRect();
+  return new DOMRect(shelf.left + slot.offsetLeft, shelf.top + slot.offsetTop, slot.offsetWidth, slot.offsetHeight);
+}
+
 // books: los libros del usuario, en el orden en que los agregó. Se acomodan de izquierda a derecha, piso por piso.
 export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
+  const open = use(OpenShelfBook);
+  const openBook = (book: ShelfBook) => (event: MouseEvent<HTMLButtonElement>) => {
+    const slot = event.currentTarget;
+    open?.({ book, slot, rect: slotRect(slot) });
+  };
   return (
     // El hueco libre de arriba lo deja justify-end: la estantería queda apoyada en el borde de abajo.
     <div className="flex min-h-0 flex-1 flex-col justify-end">
@@ -36,14 +61,34 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
             {books.length > 0 && (
               <ul aria-label="Libros" className="absolute inset-0 flex flex-wrap content-start gap-x-0.5 px-1.5">
                 {books.map((book) => (
-                  <li key={book.id} data-book-id={book.id} className="flex h-[10.5rem] items-end pb-5">
-                    <BookSpine
-                      title={book.title}
-                      category={book.category}
-                      coverColor={book.coverColor}
-                      fontColor={book.fontColor}
-                      titleFont={book.titleFont}
-                    />
+                  <li key={book.id} data-book-id={book.id} className={`group relative flex h-[10.5rem] items-end pb-5 focus-within:z-10 hover:z-10 ${PERSPECTIVE}`}>
+                    {/* Al pasar el mouse el libro sale un poco, como al sacarlo: se inclina hacia adelante sobre su base y
+                        deja ver arriba el canto de las hojas entre las dos pastas. Con un clic se abre.
+                        Excepción a los 44 px de área táctil: el ancho es el del lomo (24 a 56 px, cumple el mínimo de 24 px de
+                        WCAG 2.5.8) y los libros cubren el piso sin huecos, así que todo toque cae en algún libro. */}
+                    <button
+                      type="button"
+                      aria-haspopup="dialog"
+                      onClick={openBook(book)}
+                      className={`relative cursor-pointer outline-none transform-3d focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${PULL}`}
+                    >
+                      <BookSpine
+                        title={book.title}
+                        category={book.category}
+                        coverColor={book.coverColor}
+                        fontColor={book.fontColor}
+                        titleFont={book.titleFont}
+                      />
+                      {/* Cara de arriba: acostada hacia el fondo (de canto, no se ve) hasta que el libro se inclina. */}
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-x-0 bottom-full h-14 origin-bottom rounded-t-sm border-x-2 border-t-2 backface-hidden [transform:rotateX(90deg)]"
+                        style={{
+                          borderColor: `color-mix(in oklab, ${book.coverColor} 65%, black)`,
+                          background: "repeating-linear-gradient(90deg, #d8c8b0 0 1px, #fdfaf5 1px 3px)",
+                        }}
+                      />
+                    </button>
                   </li>
                 ))}
               </ul>

@@ -32,10 +32,34 @@ describe("getUserBooks", () => {
   };
 
   test("trae los libros del usuario en el orden en que los agregó", async () => {
-    const row = { id: "b1", title: "Rayuela", category: "large", cover_color: "#2f7a96", font_color: "#faf0d1", title_font: "lora" };
+    const row = {
+      id: "b1",
+      title: "Rayuela",
+      category: "large",
+      cover_color: "#2f7a96",
+      font_color: "#faf0d1",
+      title_font: "lora",
+      author: "Julio Cortázar",
+      year: 1963,
+      genre: "Novela",
+      comment: "Un juego.",
+      comment_font: "caveat",
+    };
     const { supabase, query } = client({ data: [row], error: null });
     expect(await getUserBooks(supabase, "user-1")).toEqual([
-      { id: "b1", title: "Rayuela", category: "large", coverColor: "#2f7a96", fontColor: "#faf0d1", titleFont: "lora" },
+      {
+        id: "b1",
+        title: "Rayuela",
+        category: "large",
+        coverColor: "#2f7a96",
+        fontColor: "#faf0d1",
+        titleFont: "lora",
+        author: "Julio Cortázar",
+        year: 1963,
+        genre: "Novela",
+        comment: "Un juego.",
+        commentFont: "caveat",
+      },
     ]);
     expect(query).toEqual({ table: "user_books", user: "user-1", order: "created_at" });
   });
