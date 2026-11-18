@@ -211,10 +211,11 @@ export async function bookToShelf({ fly, flipper }: BookParts, spine: HTMLElemen
 }
 
 // Al revés de los pasos 2 y 1: el lomo sale de la estantería (from) y vuela al centro, gira mostrando la tapa y el libro
-// se abre. Quien lo usa ya dejó el libro de canto (transform en línea) para que no se vea antes de empezar.
-// Mientras vuela el lomo, el libro cerrado se arma con estilos en línea y no con animaciones en espera con relleno hacia
-// atrás: Chrome no siempre aplica ese relleno al animar en el compositor y se veía el libro abierto un instante.
-export async function shelfToBook({ fly, inner, flipper, pages }: BookParts, spine: HTMLElement, from: DOMRect) {
+// se abre. El giro lo hace cover, una tapa suelta (de canto al empezar), y no el libro: al girar en 3D el libro entero,
+// Chrome mostraba por un instante las páginas abiertas detrás de la tapa. Quien lo usa ya escondió el libro
+// (visibility en línea); aparece cerrado, en el lugar exacto de la tapa, cuando ella termina de girar.
+// Mientras tanto el libro cerrado se arma con estilos en línea, sin animaciones en espera.
+export async function shelfToBook({ fly, inner, flipper, pages }: BookParts, spine: HTMLElement, cover: HTMLElement, from: DOMRect) {
   const open = { inner: getComputedStyle(inner).transform, pages: pages.map((page) => getComputedStyle(page).opacity) };
   // Sin las transiciones de la página y del carrusel: el libro queda cerrado al instante.
   for (const element of [inner, ...pages]) element.style.transition = "none";
@@ -223,24 +224,24 @@ export async function shelfToBook({ fly, inner, flipper, pages }: BookParts, spi
   for (const page of pages) page.style.opacity = "0";
   // El libro cerrado ocupa la mitad del centro del área del libro (medida sin transformaciones, relativa al modal).
   const closed = new DOMRect(fly.offsetLeft + fly.offsetWidth / 4, fly.offsetTop, fly.offsetWidth / 2, fly.offsetHeight);
+  Object.assign(cover.style, { left: `${closed.left}px`, top: `${closed.top}px`, width: `${closed.width}px`, height: `${closed.height}px` });
   const { dx, dy, scale } = offset(closed, from);
 
-  // 1. El lomo vuela al centro y se pone de canto; al final, el libro cerrado gira y muestra la tapa.
-  const turn = run(fly, { transform: [BOOK_TURN(90), BOOK_TURN(0)] }, { duration: 250, delay: 1000, easing: "ease-out" });
-  await Promise.all([
-    turn.finished,
-    run(
-      spine,
-      [
-        { offset: 0, transform: at(0, 0, 1, 0), easing: "cubic-bezier(0.7, 0, 0.5, 1)" },
-        { offset: 0.6, transform: at(dx, dy, scale, 0), easing: "ease-in" },
-        { offset: 0.8, transform: at(dx, dy, scale, -90) },
-        { offset: 1, transform: at(dx, dy, scale, -90) },
-      ],
-      { duration: 1250 },
-    ).finished,
-  ]);
-  fly.style.removeProperty("transform");
+  // 1. El lomo vuela al centro y se pone de canto; después la tapa gira y queda de frente.
+  await run(
+    spine,
+    [
+      { offset: 0, transform: at(0, 0, 1, 0), easing: "cubic-bezier(0.7, 0, 0.5, 1)" },
+      { offset: 0.75, transform: at(dx, dy, scale, 0), easing: "ease-in" },
+      { offset: 1, transform: at(dx, dy, scale, -90) },
+    ],
+    { duration: 1000 },
+  ).finished;
+  const turn = run(cover, { transform: [BOOK_TURN(90), BOOK_TURN(0)] }, { duration: 250, easing: "ease-out" });
+  await turn.finished;
+  // En el mismo cuadro: aparece el libro cerrado y la tapa suelta vuelve a quedar de canto.
+  fly.style.removeProperty("visibility");
+  turn.cancel();
 
   // 2. El libro se abre y aparece lo escrito.
   const flip = run(flipper, { transform: ["rotateY(0deg)", "rotateY(-180deg)"] }, { duration: 600, easing: "ease-in-out" });
@@ -251,8 +252,8 @@ export async function shelfToBook({ fly, inner, flipper, pages }: BookParts, spi
   flipper.style.removeProperty("transform");
   for (const page of pages) page.style.removeProperty("opacity");
   for (const element of [inner, ...pages]) element.style.removeProperty("transition");
-  // Se quitan las animaciones que pisarían el carrusel de celular y el paso de página. La del giro y la de la tapa se
-  // quedan (terminan en sus estilos de siempre): al quitar la de la tapa, Chrome dejaba de pintar la página derecha.
+  // Se quitan las animaciones que pisarían el carrusel de celular y el paso de página. La de la tapa se queda (termina
+  // en su estado de siempre): al quitarla, Chrome dejaba de pintar la página derecha.
   for (const animation of [center, ...writing]) animation.cancel();
 }
 
