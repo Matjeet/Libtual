@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from "react";
+import { Bookmark } from "@/components/atoms/Bookmark";
 import { BookCover, BookPages, type BookColors } from "@/components/atoms/BookParts";
 import { useHorizontalSwipe } from "@/lib/use-horizontal-swipe";
 
@@ -109,6 +110,8 @@ export function BookDialog({ dialogRef, label, showing, onClose, onRequestClose,
 
 type BookFrameProps = {
   colors: BookColors;
+  // Color del separador que asoma abajo, junto al lomo.
+  bookmark: string;
   side: BookSide;
   onSide: (side: BookSide) => void;
   // true: el libro llega y se abre con las animaciones de CSS (crear un libro). false: quien lo usa lo anima.
@@ -128,7 +131,7 @@ type BookFrameProps = {
 // Desde sm: el libro abierto completo, lo más grande que quepa (3:2; en pantallas bajas se estira a lo ancho).
 // Animación de entrada (keyframes en globals.css): book-fly lo trae, después book-open gira la tapa sobre el lomo mientras
 // book-center corre el libro para dejarlo centrado ya abierto. Sin animaciones, los estilos base son el estado final.
-export function BookFrame({ colors, side, onSide, entrance, arrows, flyRef, innerRef, flipperRef, children }: BookFrameProps) {
+export function BookFrame({ colors, bookmark, side, onSide, entrance, arrows, flyRef, innerRef, flipperRef, children }: BookFrameProps) {
   return (
     <>
       <div
@@ -149,6 +152,9 @@ export function BookFrame({ colors, side, onSide, entrance, arrows, flyRef, inne
             <BookCover colors={colors} className="absolute inset-0 size-full backface-hidden" />
             <BookPages colors={colors} mirrored className="absolute inset-0 size-full backface-hidden [transform:rotateY(180deg)]" />
           </div>
+          {/* Separador: sale de entre las hojas, centrado en el lomo (en celular asoma en las dos páginas), y cuelga sobre el
+              borde de abajo de la tapa. */}
+          <Bookmark color={bookmark} className="absolute left-1/2 top-[90.5%] h-[9%] w-[2.8%] -translate-x-1/2" />
           {children}
         </div>
       </div>
@@ -176,6 +182,9 @@ const run = (element: Element, keyframes: Keyframe[] | PropertyIndexedKeyframes,
 // Posición del lomo que vuela: corrido (x, y) desde su lugar en la estantería, escalado y girado (-90 = de canto).
 const at = (x: number, y: number, s: number, turn: number) => `translate(${x}px, ${y}px) scale(${s}) perspective(60rem) rotateY(${turn}deg)`;
 const BOOK_TURN = (turn: number) => `perspective(60rem) rotateY(${turn}deg)`;
+// Separador del lomo que vuela: al escalarse con el lomo crecería mucho y se saldría de la pantalla; se desvanece cerca de
+// la estantería (el libro abierto trae el suyo).
+const ribbon = (spine: HTMLElement) => spine.querySelector("svg")!;
 // Distancia y escala entre el libro cerrado (from) y el lomo en la estantería (to).
 function offset(from: DOMRect, to: DOMRect) {
   return { dx: from.left + from.width / 2 - (to.left + to.width / 2), dy: from.top + from.height / 2 - (to.top + to.height / 2), scale: from.height / to.height };
@@ -206,6 +215,7 @@ export async function bookToShelf({ fly, flipper }: BookParts, spine: HTMLElemen
       ],
       { duration: 1250 },
     ).finished,
+    run(ribbon(spine), [{ opacity: 0 }, { opacity: 0, offset: 0.8 }, { opacity: 1 }], { duration: 1250 }).finished,
     run(dialog, { opacity: [1, 0] }, { duration: 500, delay: 750, pseudoElement: "::backdrop" }).finished,
   ]);
 }
@@ -228,6 +238,7 @@ export async function shelfToBook({ fly, inner, flipper, pages }: BookParts, spi
   const { dx, dy, scale } = offset(closed, from);
 
   // 1. El lomo vuela al centro y se pone de canto; después la tapa gira y queda de frente.
+  run(ribbon(spine), { opacity: [1, 0] }, { duration: 250 });
   await run(
     spine,
     [
