@@ -10,7 +10,7 @@ import { HslSliders } from "@/components/molecules/HslSliders";
 import { BookDialog, BookFrame, bookToShelf, canAnimate, closeBook, findShelvedBook, pageClass, settle, type BookSide } from "@/components/organisms/BookStage";
 import { saveBook, type NewBook } from "@/lib/book-actions";
 import { BOOK_FONTS, FONT_GROUPS, fontFamily, type BookFont } from "@/lib/book-fonts";
-import { BOOK_GENRES, BOOK_STATUSES, bookCategory, type BookCategory } from "@/lib/books";
+import { BOOK_GENRES, BOOK_STATUSES, bookCategory, bookmarkColor, type BookCategory } from "@/lib/books";
 import { hexToHsl, hslColor, hslToHex, type Hsl } from "@/lib/colors";
 
 const COMMENT_MAX = 4000;
@@ -46,7 +46,7 @@ function fieldError(input: HTMLInputElement) {
 }
 
 // Libro ya guardado: su id (para encontrarlo en la estantería) y cómo se ve su lomo.
-type SavedBook = { id: string; title: string; category: BookCategory; coverColor: string; fontColor: string; titleFont: string };
+type SavedBook = { id: string; title: string; category: BookCategory; coverColor: string; fontColor: string; titleFont: string; status: string };
 
 type BookCreatorProps = {
   // Libro que salió de la bolsa: dónde estaba en pantalla y sus colores; null = cerrado.
@@ -179,6 +179,7 @@ function OpenBook({ book, side, onSide, onSaved, onShelved, ref }: OpenBookProps
           coverColor: newBook.coverColor,
           fontColor: newBook.fontColor,
           titleFont,
+          status: newBook.status,
         });
       });
     });
@@ -229,6 +230,7 @@ function OpenBook({ book, side, onSide, onSaved, onShelved, ref }: OpenBookProps
     <>
       <BookFrame
         colors={colors}
+        bookmark={bookmarkColor(status)}
         side={side}
         onSide={onSide}
         entrance
@@ -408,6 +410,7 @@ function OpenBook({ book, side, onSide, onSaved, onShelved, ref }: OpenBookProps
             coverColor={saved.coverColor}
             fontColor={saved.fontColor}
             titleFont={saved.titleFont}
+            status={saved.status}
           />
         </div>
       )}

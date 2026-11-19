@@ -1,9 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { Bookshelf, OpenShelfBook } from "./Bookshelf";
 
-const DETAILS = { author: "Julio Cortázar", year: 1963, genre: "Novela", comment: "Un juego.", commentFont: "lora", quote: "" };
+const DETAILS = { author: "Julio Cortázar", year: 1963, genre: "Novela", comment: "Un juego.", commentFont: "lora", status: "pending", quote: "" };
 
 describe("Bookshelf", () => {
   test("es una región con título y, sin libros, no tiene scroll", () => {
@@ -35,7 +35,9 @@ describe("Bookshelf", () => {
     expect(thick.style.background).toBe("rgb(47, 122, 150)");
     expect(short).toHaveClass("w-6", "h-24");
     expect(short.style.color).toBe("rgb(255, 255, 255)");
-    expect((short.lastElementChild as HTMLElement).style.fontFamily).toBe("Caveat");
+    expect(within(short).getByText("Aura").style.fontFamily).toBe("Caveat");
+    // Debajo del lomo cuelga el separador, del color del estado (pendiente: amarillo).
+    expect(short.querySelector("svg path")).toHaveAttribute("fill", "#f2c230");
   });
 
   test("al hacer clic en un libro lo abre con su lugar en la estantería", async () => {

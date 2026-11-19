@@ -15,6 +15,7 @@ const BOOK = {
   genre: "Filosofía",
   comment: "Sobre la justicia.\nY la ciudad ideal.",
   commentFont: "caveat",
+  status: "finished",
   quote: "El tiempo descubre la verdad.",
 };
 

@@ -78,6 +78,7 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
                         coverColor={book.coverColor}
                         fontColor={book.fontColor}
                         titleFont={book.titleFont}
+                        status={book.status}
                       />
                       {/* Cara de arriba: acostada hacia el fondo (de canto, no se ve) hasta que el libro se inclina. */}
                       <div
