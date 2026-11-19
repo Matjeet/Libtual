@@ -144,9 +144,10 @@ export function BookFrame({ colors, bookmark, side, onSide, entrance, arrows, fl
           className={`relative size-full perspective-[200rem] transition-transform duration-500 ease-in-out motion-reduce:transition-none sm:[transform:none] ${entrance ? "motion-safe:animate-[book-center_0.7s_ease-in-out_0.6s_backwards]" : ""} ${side === "left" ? "[transform:translateX(25%)]" : "[transform:translateX(-25%)]"}`}
         >
           <BookPages colors={colors} className="absolute inset-y-0 right-0 h-full w-1/2" />
-          {/* Separador: sale de entre las hojas de la página derecha, junto al lomo, y asoma por debajo del libro. Va antes de la
-              tapa para quedar debajo de ella: con el libro cerrado solo se ve la punta que sale por el borde de abajo. */}
-          <Bookmark color={bookmark} className="absolute left-[56%] top-[91%] h-[10%] w-[2.8%]" />
+          {/* Separador: sale de entre las hojas de la página derecha, cerca del lomo, y asoma por debajo del libro. Va antes de la
+              tapa para quedar debajo de ella: con el libro cerrado solo se ve la punta que sale por el borde de abajo.
+              En celular, un poco más lejos del lomo: así no asoma cortado en el borde de la pantalla al ver la página izquierda. */}
+          <Bookmark color={bookmark} className="absolute left-[56%] top-[91%] h-[10%] w-[2.8%] sm:left-[52%]" />
           {/* Tapa: gira sobre el lomo. Por fuera es la tapa del libro cerrado; por dentro, la mitad izquierda del libro abierto. */}
           <div
             ref={flipperRef}
