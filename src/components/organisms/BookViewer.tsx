@@ -6,7 +6,7 @@ import { BookCover } from "@/components/atoms/BookParts";
 import { BookSpine } from "@/components/atoms/BookSpine";
 import { BookDialog, BookFrame, bookToShelf, canAnimate, closeBook, pageClass, settle, shelfToBook, type BookParts } from "@/components/organisms/BookStage";
 import { BOOK_FONTS } from "@/lib/book-fonts";
-import type { ShelfBook } from "@/lib/books";
+import { bookmarkColor, type ShelfBook } from "@/lib/books";
 import { hexToHsl, hslColor } from "@/lib/colors";
 
 // Libro elegido en la estantería: sus datos, su lugar (el lomo, que queda vacío mientras está abierto) y dónde estaba en pantalla.
@@ -115,6 +115,7 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
           <>
             <BookFrame
               colors={colors!}
+              bookmark={bookmarkColor(book.status)}
               side={side}
               onSide={onSide}
               entrance={false}
@@ -176,7 +177,7 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
             {/* Lomo que vuela entre la estantería y el centro: se dibuja en su lugar y la animación lo mueve. */}
             {animated && spot && (
               <div ref={spineRef} aria-hidden="true" className="absolute" style={{ left: spot.left, top: spot.top }}>
-                <BookSpine title={book.title} category={book.category} coverColor={book.coverColor} fontColor={book.fontColor} titleFont={book.titleFont} />
+                <BookSpine title={book.title} category={book.category} coverColor={book.coverColor} fontColor={book.fontColor} titleFont={book.titleFont} status={book.status} />
               </div>
             )}
             {/* Tapa suelta que gira al llegar el lomo al centro; queda de canto (invisible) antes y después. */}
