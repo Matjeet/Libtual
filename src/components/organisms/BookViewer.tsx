@@ -134,7 +134,7 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
                 </div>
                 {/* Los datos van justo debajo del título; la cita, abajo (a la derecha en una página ancha).
                     En pantallas bajas el título cede espacio (su letra se achica) y, si aun así no cabe, la página tiene scroll. */}
-                <dl className="flex shrink-0 flex-col gap-1 pt-4 text-base text-black @lg:text-lg">
+                <dl className="flex shrink-0 flex-col gap-1 pt-4 text-[1.625rem] leading-snug text-black @lg:text-[1.75rem]">
                   {[
                     ["Autor", book.author],
                     ["Año", yearLabel(book.year)],
