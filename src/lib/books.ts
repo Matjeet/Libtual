@@ -13,12 +13,15 @@ export function bookCategory(pages: number): BookCategory {
   return "extra_large";
 }
 
-// Estado de lectura: value es lo que se guarda en la base de datos.
+// Estado de lectura: value es lo que se guarda en la base de datos; color, el del separador del libro.
 export const BOOK_STATUSES = [
-  { value: "pending", label: "Pendiente" },
-  { value: "reading", label: "Leyendo" },
-  { value: "finished", label: "Terminado" },
+  { value: "pending", label: "Pendiente", color: "#f2c230" },
+  { value: "reading", label: "Leyendo", color: "#2f6fd6" },
+  { value: "finished", label: "Terminado", color: "#2e9d4f" },
 ] as const;
+
+// Color del separador según el estado; uno desconocido se ve como pendiente.
+export const bookmarkColor = (status: string) => (BOOK_STATUSES.find(({ value }) => value === status) ?? BOOK_STATUSES[0]).color;
 
 // Géneros sugeridos en el formulario; el usuario también puede escribir uno que no esté en la lista.
 export const BOOK_GENRES = [
@@ -69,6 +72,7 @@ export type ShelfBook = {
   genre: string;
   comment: string;
   commentFont: string;
+  status: string;
   // Cita del libro; vacía si no la escribió.
   quote: string;
 };
@@ -85,6 +89,7 @@ type BookRow = {
   genre: string;
   comment: string;
   comment_font: string;
+  status: string;
   quote: string;
 };
 
@@ -92,7 +97,7 @@ type BookRow = {
 export async function getUserBooks(supabase: Supabase, userId: string): Promise<ShelfBook[]> {
   const { data, error } = await supabase
     .from("user_books")
-    .select("id, title, category, cover_color, font_color, title_font, author, year, genre, comment, comment_font, quote")
+    .select("id, title, category, cover_color, font_color, title_font, author, year, genre, comment, comment_font, status, quote")
     .eq("user_id", userId)
     .order("created_at");
   if (error || !data) return [];
@@ -108,6 +113,7 @@ export async function getUserBooks(supabase: Supabase, userId: string): Promise<
     genre: row.genre,
     comment: row.comment,
     commentFont: row.comment_font,
+    status: row.status,
     quote: row.quote,
   }));
 }
