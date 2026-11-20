@@ -4,6 +4,7 @@ import { CircleUserRound, LogOut, Pencil, TriangleAlert } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/atoms/Button";
 import { Flag } from "@/components/atoms/Flag";
+import { ThemeSwitcher } from "@/components/molecules/ThemeSwitcher";
 import { DeleteAccount } from "@/components/organisms/DeleteAccount";
 import { signOut } from "@/lib/auth";
 import { checkUsername, updateUsername } from "@/lib/profile";
@@ -123,6 +124,8 @@ export function ProfileMenu({ profile }: { profile: Profile }) {
               <LogOut aria-hidden="true" className="size-5" />
             </Button>
           </form>
+
+          <ThemeSwitcher />
 
           {/* Cada dato: etiqueta pequeña, valor grande y una línea debajo. */}
           <div className="border-b border-foreground/20 pb-2">

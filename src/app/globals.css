@@ -1,6 +1,21 @@
 @import "tailwindcss";
 
 /*
+ * Modo oscuro: el que eligió el usuario en su perfil (data-theme en <html>, ver src/lib/theme.ts) o, si dejó el
+ * predeterminado, el del sistema operativo. Lo usan la variante dark: de Tailwind y los colores del bloque oscuro de abajo.
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:not([data-theme="light"], [data-theme="light"] *)) {
+      @slot;
+    }
+  }
+}
+
+/*
  * Paleta de marca: para cambiar los colores de la app, edita solo estos 5 valores.
  * Ordenados de más claro a más oscuro.
  */
@@ -53,12 +68,12 @@
 }
 
 /*
- * Modo oscuro (según el sistema operativo): misma paleta, roles invertidos.
+ * Modo oscuro (el elegido o el del sistema, ver la variante dark arriba): misma paleta, roles invertidos.
  *   background ← palette-5 oscurecido · surface ← palette-5 · texto ← tinte de palette-1
  *   primary ← palette-1 con texto ink · secondary y accent no cambian.
  */
-@media (prefers-color-scheme: dark) {
-  :root {
+:root {
+  @variant dark {
     color-scheme: dark;
     --background: color-mix(in oklab, var(--palette-5) 45%, black);
     --foreground: color-mix(in oklab, var(--palette-1) 25%, white);
