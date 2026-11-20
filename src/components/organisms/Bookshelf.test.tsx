@@ -1,7 +1,13 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { Bookshelf, OpenShelfBook } from "./Bookshelf";
+
+const moveBook = vi.hoisted(() => vi.fn<(...args: unknown[]) => Promise<{ error?: string }>>(async () => ({})));
+vi.mock("@/lib/book-actions", () => ({ moveBook }));
+
+const titles = () => screen.getAllByRole("listitem").map((li) => li.textContent);
+const book = (id: string, title: string) => ({ id, title, category: "medium" as const, coverColor: "#2f7a96", fontColor: "#faf0d1", titleFont: "lora", ...DETAILS });
 
 const DETAILS = { author: "Julio Cortázar", year: 1963, genre: "Novela", comment: "Un juego.", commentFont: "lora", status: "pending", quote: "" };
 
@@ -52,5 +58,39 @@ describe("Bookshelf", () => {
     expect(spine).toHaveAttribute("aria-haspopup", "dialog");
     await userEvent.setup().click(spine);
     expect(open).toHaveBeenCalledWith({ book, slot: spine, rect: expect.any(DOMRect) });
+  });
+
+  test("con las flechas el libro enfocado cambia de lugar y se guarda entre sus nuevos vecinos", async () => {
+    moveBook.mockClear();
+    let finish!: (result: { error?: string }) => void;
+    moveBook.mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)));
+    const [rayuela, aura, bestiario] = [book("b1", "Rayuela"), book("b2", "Aura"), book("b3", "Bestiario")];
+    const { rerender } = render(<Bookshelf books={[rayuela, aura, bestiario]} />);
+    const user = userEvent.setup();
+    const button = screen.getByRole("button", { name: "Aura" });
+    expect(button).toHaveAccessibleDescription("Arrástralo o usa las flechas izquierda y derecha para cambiarlo de lugar.");
+    button.focus();
+    await user.keyboard("{ArrowLeft}");
+    // Mientras se guarda ya se ve en su nuevo lugar.
+    expect(titles()).toEqual(["Aura", "Rayuela", "Bestiario"]);
+    expect(moveBook).toHaveBeenCalledWith("b2", null, "b1");
+    expect(button).toHaveFocus();
+    // Como refresh(): la página trae la estantería en el nuevo orden.
+    rerender(<Bookshelf books={[aura, rayuela, bestiario]} />);
+    await act(async () => finish({}));
+    expect(screen.getByText("Aura quedó en el lugar 1 de 3.")).toBeInTheDocument();
+    expect(titles()).toEqual(["Aura", "Rayuela", "Bestiario"]);
+    // Ya está al principio: no se mueve más.
+    await user.keyboard("{ArrowLeft}");
+    expect(moveBook).toHaveBeenCalledTimes(1);
+  });
+
+  test("si no se puede guardar, el libro vuelve a su lugar y se avisa", async () => {
+    moveBook.mockResolvedValueOnce({ error: "No pudimos mover el libro." });
+    render(<Bookshelf books={[book("b1", "Rayuela"), book("b2", "Aura")]} />);
+    screen.getByRole("button", { name: "Rayuela" }).focus();
+    await userEvent.setup().keyboard("{ArrowRight}");
+    expect(await screen.findByText("No pudimos mover el libro.")).toBeInTheDocument();
+    expect(titles()).toEqual(["Rayuela", "Aura"]);
   });
 });
