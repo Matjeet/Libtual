@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
+import { use } from "react";
+import { ShelfView } from "./Bookshelf";
 import { RoomScene } from "./RoomScene";
 
 // El mercado se prueba aparte: aquí solo importa que se abra con el cuadro elegido.
@@ -95,5 +97,22 @@ describe("RoomScene: bolsa", () => {
     expect(screen.queryByText("creando un libro")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Agregar un libro" }));
     expect(await screen.findByText("creando un libro")).toBeInTheDocument();
+  });
+
+  test("la pizarra sobre la bolsa cambia el orden y el género que ve la estantería", async () => {
+    function View() {
+      const { sort, genre } = use(ShelfView);
+      return <p>vista: {`${sort} ${genre ?? "todos"}`}</p>;
+    }
+    render(
+      <RoomScene genres={["Novela", "Poesía"]}>
+        <View />
+      </RoomScene>,
+    );
+    expect(screen.getByText("vista: custom todos")).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByText("Recién actualizados"));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Filtrar por género" }), "Poesía");
+    expect(screen.getByText("vista: updated Poesía")).toBeInTheDocument();
   });
 });

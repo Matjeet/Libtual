@@ -15,10 +15,12 @@ import {
 import { PaintingFrame, type FrameShape } from "@/components/atoms/PaintingFrame";
 import { PaperBag, type TakenBook } from "@/components/atoms/PaperBag";
 import { SideTable } from "@/components/atoms/SideTable";
+import { ShelfChalkboard } from "@/components/molecules/ShelfChalkboard";
 import { BookCreator } from "@/components/organisms/BookCreator";
-import { OpenShelfBook } from "@/components/organisms/Bookshelf";
+import { OpenShelfBook, ShelfView } from "@/components/organisms/Bookshelf";
 import { BookViewer, type ViewedBook } from "@/components/organisms/BookViewer";
 import { PaintingMarket } from "@/components/organisms/PaintingMarket";
+import type { ShelfSort } from "@/lib/books";
 import { PAINTING_FRAMES, type PaintingImages } from "@/lib/paintings";
 import { useHorizontalSwipe } from "@/lib/use-horizontal-swipe";
 
@@ -58,16 +60,18 @@ function Paintings({
   side,
   images,
   onChoose,
+  className = "",
 }: {
   frames: [Painting, Painting];
   side: "left" | "right";
   images: PaintingImages;
   onChoose: (shape: FrameShape) => void;
+  className?: string;
 }) {
   return (
     // En paneles muy bajos (celular en horizontal) los cuadros serían diminutos: se ocultan y la bolsa o la mesa usan todo el alto.
     <div
-      className={`flex min-h-0 w-full max-w-60 flex-1 flex-col items-center justify-center gap-4 py-4 xl:w-(--side-free) xl:max-w-none xl:gap-6 [@container(max-height:20rem)]:hidden ${side === "left" ? "xl:self-end xl:pr-2.5" : "xl:self-start xl:pl-2.5"}`}
+      className={`flex min-h-0 w-full max-w-60 flex-1 flex-col items-center justify-center gap-4 py-4 xl:w-(--side-free) xl:max-w-none xl:gap-6 [@container(max-height:20rem)]:hidden ${side === "left" ? "xl:self-end xl:pr-2.5" : "xl:self-start xl:pl-2.5"} ${className}`}
     >
       {frames.map(({ shape, width, grow }) => (
         <button
@@ -86,13 +90,19 @@ function Paintings({
 }
 
 // La habitación de la página de inicio: bolsa | estantería | mesa, con dos cuadros sobre la bolsa y dos sobre la mesa.
+// Sobre la bolsa cuelga además la pizarra con el orden y el filtro por género de la estantería.
 // - Desde xl hay espacio a los lados: la bolsa y la mesa van junto a la estantería, apoyadas en el borde de abajo,
 //   y sus columnas ocupan todo el alto para colgar los cuadros encima.
 // - Por debajo de xl es un carrusel como el de fotos: se ve un panel a la vez y un gesto (dedo o arrastre con el mouse)
 //   pasa al siguiente de golpe. Con mouse también hay flechas a los lados, y con teclado, las flechas del teclado.
 // paintings: URL de la imagen de cada cuadro del usuario; los cuadros sin imagen muestran el lienzo vacío.
-export function RoomScene({ children, paintings = {} }: { children: ReactNode; paintings?: PaintingImages }) {
+// genres: los géneros de los libros del usuario, para filtrar la estantería.
+export function RoomScene({ children, paintings = {}, genres = [] }: { children: ReactNode; paintings?: PaintingImages; genres?: string[] }) {
   const [index, setIndex] = useState(BOOKSHELF);
+  const [sort, setSort] = useState<ShelfSort>("custom");
+  const [chosenGenre, setGenre] = useState<string | null>(null);
+  // Si ya no queda ningún libro del género elegido, se ven todos.
+  const genre = chosenGenre !== null && genres.includes(chosenGenre) ? chosenGenre : null;
   const [market, setMarket] = useState<FrameShape | null>(null);
   // Libro que salió de la bolsa: abre la creación de un libro.
   const [newBook, setNewBook] = useState<TakenBook | null>(null);
@@ -166,10 +176,21 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
           onDragStart={(event) => event.preventDefault()}
           className="relative flex min-h-0 w-full flex-1 touch-pan-y xl:mx-auto xl:max-w-[80%] min-[91.25rem]:max-w-none gap-8 select-none transition-transform duration-300 ease-out translate-x-[calc(var(--slide)*-1*(100%+2rem))] motion-reduce:transition-none xl:translate-x-0 xl:gap-0 xl:transition-none"
         >
+          {/* Por debajo de xl, si la pizarra y la bolsa no caben (celulares chicos o en horizontal), el panel hace scroll
+              vertical; justify-end-safe: lo que no cabe arriba queda alcanzable. */}
           <div
             inert={!wide && index !== 0}
-            className={`flex w-full shrink-0 flex-col items-center justify-end [container-type:size] xl:absolute xl:inset-y-0 xl:right-full xl:mr-(--side-gap) ${SIDE_WIDTH}`}
+            className={`flex w-full shrink-0 flex-col items-center justify-end-safe overflow-y-auto [container-type:size] xl:absolute xl:inset-y-0 xl:right-full xl:mr-(--side-gap) xl:overflow-visible ${SIDE_WIDTH}`}
           >
+            {/* Arriba de la columna; los cuadros se achican para caber entre la pizarra y la bolsa. */}
+            <ShelfChalkboard
+              sort={sort}
+              onSortChange={setSort}
+              genre={genre}
+              onGenreChange={setGenre}
+              genres={genres}
+              className="mt-2 w-[min(16rem,85%)] shrink-0 xl:mt-0 xl:w-full"
+            />
             <Paintings
               frames={[
                 { shape: "oval", width: 1.1, grow: 1.1 },
@@ -178,6 +199,8 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
               side="left"
               images={paintings}
               onChoose={setMarket}
+              // Con la pizarra arriba, en paneles de menos de 44rem de alto los cuadros quedarían diminutos: se ocultan.
+              className="[@container(max-height:44rem)]:hidden"
             />
             {/* Al pasar el mouse se comprime un poco desde la base (que está en el suelo) y se queda así mientras dure el hover.
                 Por debajo de xl ocupa a lo sumo la mitad del alto del panel (cqh), para dejar lugar a los cuadros. */}
@@ -189,7 +212,7 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
           </div>
           {/* Con mouse, margen a los lados para que las flechas (44 px) no tapen los postes ni los libros. */}
           <div inert={!wide && index !== BOOKSHELF} className="flex w-full shrink-0 flex-col pointer-fine:px-12 xl:pointer-fine:px-0">
-            {children}
+            <ShelfView value={{ sort, genre }}>{children}</ShelfView>
           </div>
           <div
             inert={!wide && index !== 2}
