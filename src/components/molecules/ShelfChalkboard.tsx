@@ -81,12 +81,12 @@ export function ShelfChalkboard({ sort, onSortChange, genre, onGenreChange, genr
         <label className="flex flex-col gap-1">
           <span className={`-rotate-1 text-xl leading-tight ${ROUGH} ${cabinSketch.className}`}>Filtrar por género</span>
           <span className="relative">
-            {/* text-base: 16 px, para que iOS no haga zoom al enfocarlo. color-scheme: la lista que despliega el navegador
-                también se ve oscura. */}
+            {/* text-base: 16 px, para que iOS no haga zoom al enfocarlo. La lista que despliega el navegador no hereda la
+                tiza: letra oscura sobre fondo claro. */}
             <select
               value={genre ?? ""}
               onChange={(event) => onGenreChange(event.target.value || null)}
-              className={`min-h-11 w-full cursor-pointer appearance-none rounded-md border-2 border-dashed border-current/70 bg-transparent py-1 pl-2 pr-8 text-base [color-scheme:dark] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current pointer-fine:min-h-9 ${schoolbell.className}`}
+              className={`min-h-11 w-full cursor-pointer appearance-none rounded-md border-2 border-dashed border-current/70 bg-transparent py-1 pl-2 pr-8 text-base [color-scheme:light] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current pointer-fine:min-h-9 [&_option]:bg-white [&_option]:text-neutral-900 ${schoolbell.className}`}
             >
               <option value="">Todos los géneros</option>
               {genres.map((name) => (
