@@ -2,7 +2,7 @@
 
 import { Check, ChevronDown } from "lucide-react";
 import { Cabin_Sketch, Schoolbell } from "next/font/google";
-import type { CSSProperties, KeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent, Ref } from "react";
 import { SHELF_SORTS, type ShelfSort } from "@/lib/books";
 
 const cabinSketch = Cabin_Sketch({ weight: "700", subsets: ["latin"], display: "swap" });
@@ -23,6 +23,7 @@ type ShelfChalkboardProps = {
   genres: string[];
   className?: string;
   style?: CSSProperties;
+  ref?: Ref<HTMLDivElement>;
   // Detrás de la bolsa no se usa.
   inert?: boolean;
 };
@@ -30,7 +31,7 @@ type ShelfChalkboardProps = {
 // Pizarra colgada en la pared con el orden de la estantería (uno a la vez, por defecto Personalizado) y el filtro por género.
 // Todo se ve escrito con tiza; cada orden es un cuadro dibujado que lleva un check al elegirlo.
 // Si se le da un alto menor que su contenido (detrás de la bolsa), la pizarra se desplaza por dentro.
-export function ShelfChalkboard({ sort, onSortChange, genre, onGenreChange, genres, className = "", style, inert }: ShelfChalkboardProps) {
+export function ShelfChalkboard({ sort, onSortChange, genre, onGenreChange, genres, className = "", style, inert, ref }: ShelfChalkboardProps) {
   // Las flechas cambian la opción elegida: no deben pasar de panel en el carrusel de la habitación.
   const keepArrows = (event: KeyboardEvent) => {
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") event.stopPropagation();
@@ -39,6 +40,7 @@ export function ShelfChalkboard({ sort, onSortChange, genre, onGenreChange, genr
     // Marco de madera y, dentro, la pizarra con manchas de borrador más claras.
     <div
       onKeyDown={keepArrows}
+      ref={ref}
       inert={inert}
       style={style}
       className={`wood-grain-x flex flex-col rounded-md p-1.5 shadow-[0_8px_14px_-6px_rgb(0_0_0/0.45)] ${className}`}
