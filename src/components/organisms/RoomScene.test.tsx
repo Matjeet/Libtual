@@ -99,7 +99,7 @@ describe("RoomScene: bolsa", () => {
     expect(await screen.findByText("creando un libro")).toBeInTheDocument();
   });
 
-  test("la pizarra sobre la bolsa cambia el orden y el género que ve la estantería", async () => {
+  test("la pizarra, detrás de la bolsa, pasa al frente con un clic y cambia el orden y el género que ve la estantería", async () => {
     function View() {
       const { sort, genre } = use(ShelfView);
       return <p>vista: {`${sort} ${genre ?? "todos"}`}</p>;
@@ -111,8 +111,23 @@ describe("RoomScene: bolsa", () => {
     );
     expect(screen.getByText("vista: custom todos")).toBeInTheDocument();
     const user = userEvent.setup();
+    // Atrás no se usa; la bolsa sí.
+    const board = screen.getByRole("group", { name: "Ordenado por", hidden: true }).parentElement!.parentElement!;
+    expect(board).toHaveAttribute("inert");
+    const bag = () => screen.getByRole("button", { name: "Agregar un libro", hidden: true }).parentElement!;
+    expect(bag()).not.toHaveAttribute("inert");
+
+    await user.click(screen.getByRole("button", { name: "Mostrar la pizarra para ordenar y filtrar la estantería" }));
+    expect(board).not.toHaveAttribute("inert");
+    expect(bag()).toHaveAttribute("inert");
     await user.click(screen.getByText("Recién actualizados"));
     await user.selectOptions(screen.getByRole("combobox", { name: "Filtrar por género" }), "Poesía");
     expect(screen.getByText("vista: updated Poesía")).toBeInTheDocument();
+
+    // Un clic en la bolsa (atrás) la pasa al frente, sin crear un libro.
+    await user.click(screen.getByRole("button", { name: "Mostrar la bolsa para agregar un libro" }));
+    expect(screen.queryByText("creando un libro")).not.toBeInTheDocument();
+    expect(board).toHaveAttribute("inert");
+    expect(screen.getByRole("button", { name: "Mostrar la pizarra para ordenar y filtrar la estantería" })).toBeInTheDocument();
   });
 });
