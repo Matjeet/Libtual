@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { Bookshelf, OpenShelfBook } from "./Bookshelf";
@@ -92,5 +92,27 @@ describe("Bookshelf", () => {
     await userEvent.setup().keyboard("{ArrowRight}");
     expect(await screen.findByText("No pudimos mover el libro.")).toBeInTheDocument();
     expect(titles()).toEqual(["Rayuela", "Aura"]);
+  });
+
+  test("al arrastrar, soltar fuera de la estantería termina el arrastre y no abre el libro", () => {
+    const open = vi.fn();
+    render(
+      <OpenShelfBook value={open}>
+        <Bookshelf books={[book("b1", "Rayuela"), book("b2", "Aura")]} />
+      </OpenShelfBook>,
+    );
+    const rayuela = screen.getByRole("button", { name: "Rayuela" });
+    const ghost = () => document.body.querySelector(":scope > [aria-hidden='true']");
+    const pointer = { pointerId: 7, isPrimary: true, button: 0, pointerType: "mouse" };
+    fireEvent.pointerDown(rayuela, { ...pointer, clientX: 10, clientY: 10 });
+    // Al moverse unos píxeles se levanta: una copia sigue al puntero.
+    fireEvent.pointerMove(screen.getByRole("list"), { ...pointer, clientX: 40, clientY: 10 });
+    expect(ghost()).toHaveTextContent("Rayuela");
+    // Se suelta fuera de la lista (como cuando el navegador pierde la captura): igual termina.
+    fireEvent.pointerMove(document.body, { ...pointer, clientX: 900, clientY: 900 });
+    fireEvent.pointerUp(document.body, { ...pointer, clientX: 900, clientY: 900 });
+    expect(ghost()).toBeNull();
+    fireEvent.click(rayuela);
+    expect(open).not.toHaveBeenCalled();
   });
 });

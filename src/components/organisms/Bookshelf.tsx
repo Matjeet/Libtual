@@ -3,6 +3,7 @@
 import {
   createContext,
   use,
+  useEffectEvent,
   useLayoutEffect,
   useOptimistic,
   useRef,
@@ -49,7 +50,7 @@ function slotRect(slot: HTMLElement) {
   return new DOMRect(shelf.left + slot.offsetLeft, shelf.top + slot.offsetTop, slot.offsetWidth, slot.offsetHeight);
 }
 
-type Press = { book: ShelfBook; button: HTMLElement; x: number; y: number; timer?: ReturnType<typeof setTimeout> };
+type Press = { book: ShelfBook; button: HTMLElement; pointerId: number; x: number; y: number; timer?: ReturnType<typeof setTimeout> };
 // El libro que se arrastra, el orden que se ve mientras tanto y su lugar en pantalla al levantarlo (de ahí parte la copia).
 type Drag = { book: ShelfBook; order: ShelfBook[]; rect: DOMRect };
 
@@ -142,40 +143,50 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
   function onPointerDown(book: ShelfBook, event: PointerEvent<HTMLButtonElement>) {
     if (!event.isPrimary || event.button !== 0 || drag) return;
     dragged.current = false;
-    // Los movimientos y el soltar llegan a la lista aunque el puntero salga de ella. La captura va en la lista y no en el
-    // libro: al reordenar, React mueve los <li> en el DOM y el navegador le quita la captura al elemento que se mueve.
+    // Con mouse, los movimientos siguen llegando aunque el puntero salga de la ventana. La captura va en la lista y no en
+    // el libro: al reordenar, React mueve los <li> en el DOM y el navegador le quita la captura al elemento que se mueve.
     listRef.current!.setPointerCapture?.(event.pointerId);
     const timer = event.pointerType === "mouse" ? undefined : setTimeout(lift, HOLD_MS);
-    press.current = { book, button: event.currentTarget, x: event.clientX, y: event.clientY, timer };
+    press.current = { book, button: event.currentTarget, pointerId: event.pointerId, x: event.clientX, y: event.clientY, timer };
   }
 
+  // Antes de levantar el libro: con mouse, el arrastre empieza al moverse; con el dedo, moverse antes de tiempo es
+  // deslizar el carrusel de la habitación y no se arrastra el libro.
   function onPointerMove(event: PointerEvent<HTMLUListElement>) {
     const current = press.current;
-    if (!current) return;
-    if (drag) {
-      ghostRef.current!.style.translate = `${event.clientX - current.x}px ${event.clientY - current.y}px`;
-      const next = orderAt(event.clientX, event.clientY, drag);
-      if (next) {
-        snapshot();
-        setDrag({ ...drag, order: next });
-      }
-      return;
-    }
+    if (!current || drag || event.pointerId !== current.pointerId) return;
     if (Math.hypot(event.clientX - current.x, event.clientY - current.y) < DRAG_DISTANCE) return;
-    // Con el dedo, moverse antes de tiempo es deslizar el carrusel: no se arrastra el libro.
-    if (current.timer !== undefined) {
-      clearTimeout(current.timer);
-      press.current = null;
-    } else lift();
+    if (current.timer === undefined) return lift();
+    clearTimeout(current.timer);
+    press.current = null;
   }
 
-  // Al soltar, la copia vuela al hueco y el libro queda ahí.
-  function onPointerUp(event: PointerEvent<HTMLUListElement>) {
+  // Se soltó (o se canceló) antes de levantar el libro.
+  function release() {
+    if (drag) return;
     clearTimeout(press.current?.timer);
     press.current = null;
-    if (!drag) return;
-    // El carrusel de la habitación no debe tomarlo como un deslizamiento.
+  }
+
+  // Ya levantado, el puntero se sigue en window: ahí llegan el movimiento y el soltar estén donde estén, aunque el navegador
+  // pierda la captura (pasa en el celular al reordenar). En la fase de captura, para frenar el soltar antes que el
+  // carrusel de la habitación, que lo tomaría como un deslizamiento.
+  const follow = useEffectEvent((event: globalThis.PointerEvent) => {
+    const current = press.current;
+    if (!drag || event.pointerId !== current?.pointerId) return;
+    ghostRef.current!.style.translate = `${event.clientX - current.x}px ${event.clientY - current.y}px`;
+    const next = orderAt(event.clientX, event.clientY, drag);
+    if (next) {
+      snapshot();
+      setDrag({ ...drag, order: next });
+    }
+  });
+
+  // Al soltar, la copia vuela al hueco y el libro queda ahí.
+  const drop = useEffectEvent((event: globalThis.PointerEvent) => {
+    if (!drag || event.pointerId !== press.current?.pointerId) return;
     event.stopPropagation();
+    press.current = null;
     const land = () => {
       setDrag(null);
       save(drag.book, drag.order);
@@ -191,13 +202,27 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
       },
       { duration: 150, easing: "ease-out", fill: "forwards" },
     ).onfinish = land;
-  }
+  });
 
-  function onPointerCancel() {
-    clearTimeout(press.current?.timer);
+  const cancel = useEffectEvent((event: globalThis.PointerEvent) => {
+    if (event.pointerId !== press.current?.pointerId) return;
     press.current = null;
     setDrag(null);
-  }
+  });
+
+  const dragging = drag !== null;
+  useLayoutEffect(() => {
+    if (!dragging) return;
+    const listeners = [
+      ["pointermove", (event: globalThis.PointerEvent) => follow(event)],
+      ["pointerup", (event: globalThis.PointerEvent) => drop(event)],
+      ["pointercancel", (event: globalThis.PointerEvent) => cancel(event)],
+    ] as const;
+    for (const [type, listener] of listeners) window.addEventListener(type, listener, true);
+    return () => {
+      for (const [type, listener] of listeners) window.removeEventListener(type, listener, true);
+    };
+  }, [dragging]);
 
   // Teclado: las flechas mueven el libro enfocado un lugar a la izquierda o a la derecha.
   function onKeyDown(book: ShelfBook, event: KeyboardEvent<HTMLButtonElement>) {
@@ -240,8 +265,8 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
                 ref={listRef}
                 aria-label="Libros"
                 onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onPointerCancel={onPointerCancel}
+                onPointerUp={release}
+                onPointerCancel={release}
                 className="absolute inset-0 flex flex-wrap content-start gap-x-0.5 px-1.5"
               >
                 {shown.map((book) => (
