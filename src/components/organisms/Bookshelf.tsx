@@ -18,7 +18,7 @@ import { BookSpine } from "@/components/atoms/BookSpine";
 import { canAnimate } from "@/components/organisms/BookStage";
 import type { ViewedBook } from "@/components/organisms/BookViewer";
 import { moveBook } from "@/lib/book-actions";
-import type { ShelfBook } from "@/lib/books";
+import { arrangeBooks, type ShelfBook, type ShelfSort } from "@/lib/books";
 
 // Alto estándar de cada piso (hueco + tablón). La estantería mide un número entero de pisos más el tablón de arriba
 // (1.25rem = 20px, con su canto incluido): se ven solo pisos completos y el espacio que sobra queda arriba, sobre la estantería.
@@ -44,6 +44,9 @@ const HOLD_MS = 300;
 // Abre un libro de la estantería. Lo da RoomScene, que muestra el libro abierto fuera del carrusel de la habitación.
 export const OpenShelfBook = createContext<((viewing: ViewedBook) => void) | null>(null);
 
+// Cómo se ve la estantería: el orden y el género elegidos en la pizarra (null = todos). Lo da RoomScene.
+export const ShelfView = createContext<{ sort: ShelfSort; genre: string | null }>({ sort: "custom", genre: null });
+
 // Lugar del libro en pantalla sin la inclinación del hover: su caja dentro del <li> (relative), que no se transforma.
 function slotRect(slot: HTMLElement) {
   const shelf = slot.parentElement!.getBoundingClientRect();
@@ -54,11 +57,15 @@ type Press = { book: ShelfBook; button: HTMLElement; pointerId: number; x: numbe
 // El libro que se arrastra, el orden que se ve mientras tanto y su lugar en pantalla al levantarlo (de ahí parte la copia).
 type Drag = { book: ShelfBook; order: ShelfBook[]; rect: DOMRect };
 
-// books: los libros del usuario, en el orden de su estantería. Se acomodan de izquierda a derecha, piso por piso.
-// Se cambian de lugar arrastrándolos (o con las flechas del teclado): mientras se arrastra, los demás se corren y abren el
-// hueco donde quedará; al soltarlo se guarda su nuevo lugar (moveBook) y, mientras tanto, ya se ve movido.
+// books: los libros del usuario, en el orden de su estantería. Se ven los del género elegido, en el orden elegido (ShelfView),
+// de izquierda a derecha, piso por piso.
+// En el orden personalizado se cambian de lugar arrastrándolos (o con las flechas del teclado): mientras se arrastra, los
+// demás se corren y abren el hueco donde quedará; al soltarlo se guarda su nuevo lugar (moveBook) y, mientras tanto, ya
+// se ve movido. Con un género elegido, el libro queda entre los dos de ese género que lo rodean.
 export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
   const open = use(OpenShelfBook);
+  const { sort, genre } = use(ShelfView);
+  const movable = sort === "custom";
   const [shelved, setShelved] = useOptimistic(books);
   const [, startTransition] = useTransition();
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -70,7 +77,8 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
   const ghostRef = useRef<HTMLDivElement>(null);
   // Dónde estaba cada libro en pantalla antes de cambiar el orden: desde ahí se desliza a su nuevo lugar.
   const before = useRef<Map<string, DOMRect> | null>(null);
-  const shown = drag?.order ?? shelved;
+  const arranged = arrangeBooks(shelved, sort, genre);
+  const shown = drag?.order ?? arranged;
 
   const items = () => [...(listRef.current?.children ?? [])] as HTMLElement[];
   const snapshot = () => (before.current = new Map(items().map((li) => [li.dataset.bookId!, li.getBoundingClientRect()])));
@@ -99,13 +107,17 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
     open?.({ book, slot, rect: slotRect(slot) });
   };
 
-  // Guarda el nuevo orden: el libro queda entre sus vecinos.
+  // Guarda el nuevo orden de los libros que se ven: el libro queda entre sus vecinos. En la estantería completa (que
+  // puede tener libros de otros géneros ocultos) va justo después del de su izquierda, o antes del de su derecha.
   function save(book: ShelfBook, order: ShelfBook[]) {
-    if (order.every((other, i) => other.id === shelved[i]?.id)) return;
+    if (order.every((other, i) => other === arranged[i])) return;
     const i = order.indexOf(book);
+    const [after, before] = [order[i - 1] ?? null, order[i + 1] ?? null];
+    const full = shelved.filter((other) => other !== book);
+    full.splice(after ? full.indexOf(after) + 1 : full.indexOf(before!), 0, book);
     startTransition(async () => {
-      setShelved(order);
-      const result = await moveBook(book.id, order[i - 1]?.id ?? null, order[i + 1]?.id ?? null);
+      setShelved(full);
+      const result = await moveBook(book.id, after?.id ?? null, before?.id ?? null);
       setMessage(result.error ?? `${book.title} quedó en el lugar ${i + 1} de ${order.length}.`);
     });
   }
@@ -137,11 +149,11 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
 
   function lift() {
     dragged.current = true;
-    setDrag({ book: press.current!.book, order: shelved, rect: slotRect(press.current!.button) });
+    setDrag({ book: press.current!.book, order: arranged, rect: slotRect(press.current!.button) });
   }
 
   function onPointerDown(book: ShelfBook, event: PointerEvent<HTMLButtonElement>) {
-    if (!event.isPrimary || event.button !== 0 || drag) return;
+    if (!movable || !event.isPrimary || event.button !== 0 || drag) return;
     dragged.current = false;
     // Con mouse, los movimientos siguen llegando aunque el puntero salga de la ventana. La captura va en la lista y no en
     // el libro: al reordenar, React mueve los <li> en el DOM y el navegador le quita la captura al elemento que se mueve.
@@ -227,13 +239,13 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
   // Teclado: las flechas mueven el libro enfocado un lugar a la izquierda o a la derecha.
   function onKeyDown(book: ShelfBook, event: KeyboardEvent<HTMLButtonElement>) {
     const step = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
-    if (!step || drag) return;
+    if (!step || !movable || drag) return;
     // Las flechas sobre un libro no pasan de panel en el carrusel de la habitación.
     event.preventDefault();
     event.stopPropagation();
-    const i = shelved.indexOf(book);
-    if (i + step < 0 || i + step >= shelved.length) return;
-    const order = shelved.filter((other) => other !== book);
+    const i = arranged.indexOf(book);
+    if (i + step < 0 || i + step >= arranged.length) return;
+    const order = arranged.filter((other) => other !== book);
     order.splice(i + step, 0, book);
     snapshot();
     save(book, order);
@@ -315,7 +327,9 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
               </ul>
             )}
             <p id="bookshelf-move-hint" className="sr-only">
-              Arrástralo o usa las flechas izquierda y derecha para cambiarlo de lugar.
+              {movable
+                ? "Arrástralo o usa las flechas izquierda y derecha para cambiarlo de lugar."
+                : "Para cambiarlo de lugar, ordena la estantería como Personalizado."}
             </p>
             <p aria-live="polite" className="sr-only">
               {message}

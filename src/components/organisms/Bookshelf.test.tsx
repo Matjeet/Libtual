@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
-import { Bookshelf, OpenShelfBook } from "./Bookshelf";
+import { Bookshelf, OpenShelfBook, ShelfView } from "./Bookshelf";
 
 const moveBook = vi.hoisted(() => vi.fn<(...args: unknown[]) => Promise<{ error?: string }>>(async () => ({})));
 vi.mock("@/lib/book-actions", () => ({ moveBook }));
@@ -9,7 +9,7 @@ vi.mock("@/lib/book-actions", () => ({ moveBook }));
 const titles = () => screen.getAllByRole("listitem").map((li) => li.textContent);
 const book = (id: string, title: string) => ({ id, title, category: "medium" as const, coverColor: "#2f7a96", fontColor: "#faf0d1", titleFont: "lora", ...DETAILS });
 
-const DETAILS = { author: "Julio Cortázar", year: 1963, genre: "Novela", comment: "Un juego.", commentFont: "lora", status: "pending", quote: "" };
+const DETAILS = { author: "Julio Cortázar", year: 1963, genre: "Novela", comment: "Un juego.", commentFont: "lora", status: "pending", quote: "", createdAt: "2026-11-15T10:00:00+00:00", updatedAt: "2026-11-15T10:00:00+00:00" };
 
 describe("Bookshelf", () => {
   test("es una región con título y, sin libros, no tiene scroll", () => {
@@ -114,5 +114,40 @@ describe("Bookshelf", () => {
     expect(ghost()).toBeNull();
     fireEvent.click(rayuela);
     expect(open).not.toHaveBeenCalled();
+  });
+
+  test("muestra solo el género elegido, en el orden elegido, y solo deja mover libros en el orden personalizado", async () => {
+    const dated = (id: string, title: string, genre: string, day: number) => ({
+      ...book(id, title),
+      genre,
+      createdAt: `2026-11-0${day}T00:00:00+00:00`,
+    });
+    const books = [dated("b1", "Rayuela", "Novela", 3), dated("b2", "Ficciones", "Cuento", 1), dated("b3", "Aura", "Novela", 2)];
+    const { rerender } = render(
+      <ShelfView value={{ sort: "oldest", genre: "Novela" }}>
+        <Bookshelf books={books} />
+      </ShelfView>,
+    );
+    expect(titles()).toEqual(["Aura", "Rayuela"]);
+    const aura = screen.getByRole("button", { name: "Aura" });
+    expect(aura).toHaveAccessibleDescription("Para cambiarlo de lugar, ordena la estantería como Personalizado.");
+    aura.focus();
+    const user = userEvent.setup();
+    await user.keyboard("{ArrowRight}");
+    expect(titles()).toEqual(["Aura", "Rayuela"]);
+
+    // Personalizado con el género: Aura pasa antes de Rayuela, su vecino visible (Ficciones, de otro género, no cuenta).
+    moveBook.mockClear();
+    moveBook.mockImplementationOnce(() => new Promise(() => {}));
+    rerender(
+      <ShelfView value={{ sort: "custom", genre: "Novela" }}>
+        <Bookshelf books={books} />
+      </ShelfView>,
+    );
+    expect(titles()).toEqual(["Rayuela", "Aura"]);
+    screen.getByRole("button", { name: "Aura" }).focus();
+    await user.keyboard("{ArrowLeft}");
+    expect(moveBook).toHaveBeenCalledWith("b3", null, "b1");
+    expect(titles()).toEqual(["Aura", "Rayuela"]);
   });
 });
