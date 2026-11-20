@@ -2,16 +2,30 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { saveBook, type NewBook } from "./book-actions";
 
-// Supabase simulado: sesión y resultado del insert.
+// Supabase simulado: sesión, el libro con el orden más alto del usuario y resultado del insert.
 const db = vi.hoisted(() => ({
   userId: "user-1" as string | undefined,
   insert: vi.fn(),
+  lastQuery: vi.fn(),
+  last: { data: { shelf_order: 4 } as unknown, error: null as unknown },
   result: { data: { id: "book-1" } as unknown, error: null as unknown },
 }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
     auth: { getClaims: async () => ({ data: db.userId ? { claims: { sub: db.userId } } : null }) },
-    from: () => ({
+    from: (table: string) => ({
+      select: (columns: string) => ({
+        eq: (column: string, value: string) => ({
+          order: (by: string, options: unknown) => ({
+            limit: (count: number) => ({
+              maybeSingle: async () => {
+                db.lastQuery({ table, columns, column, value, by, options, count });
+                return db.last;
+              },
+            }),
+          }),
+        }),
+      }),
       insert: (row: unknown) => {
         db.insert(row);
         return { select: () => ({ single: async () => db.result }) };
@@ -39,8 +53,10 @@ const BOOK: NewBook = {
 
 beforeEach(() => {
   db.userId = "user-1";
+  db.last = { data: { shelf_order: 4 }, error: null };
   db.result = { data: { id: "book-1" }, error: null };
   db.insert.mockReset();
+  db.lastQuery.mockReset();
   refresh.mockReset();
 });
 
@@ -62,8 +78,31 @@ describe("saveBook", () => {
       status: "finished",
       comment: "Macondo.",
       quote: "Muchos años después, frente al pelotón de fusilamiento…",
+      shelf_order: 5,
+    });
+    // El orden más alto de los libros de este usuario.
+    expect(db.lastQuery).toHaveBeenCalledWith({
+      table: "user_books",
+      columns: "shelf_order",
+      column: "user_id",
+      value: "user-1",
+      by: "shelf_order",
+      options: { ascending: false },
+      count: 1,
     });
     expect(refresh).toHaveBeenCalled();
+  });
+
+  test("el primer libro de la estantería queda con el orden 1", async () => {
+    db.last = { data: null, error: null };
+    await saveBook(BOOK);
+    expect(db.insert).toHaveBeenCalledWith(expect.objectContaining({ shelf_order: 1 }));
+  });
+
+  test("si no puede leer el orden, no guarda el libro", async () => {
+    db.last = { data: null, error: { message: "boom" } };
+    expect(await saveBook(BOOK)).toEqual({ error: "No pudimos guardar tu libro. Intenta de nuevo." });
+    expect(db.insert).not.toHaveBeenCalled();
   });
 
   test("rechaza datos inválidos sin tocar la base de datos", async () => {

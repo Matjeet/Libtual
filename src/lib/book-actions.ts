@@ -53,6 +53,7 @@ function isValid(book: NewBook) {
 }
 
 // Guarda el libro en la estantería del usuario (la categoría sale de las páginas) y refresca la página para que aparezca.
+// Queda último en el orden de la estantería: el siguiente número después del más alto (el primero es 1).
 export async function saveBook(book: NewBook): Promise<SaveBookResult> {
   // Viene del cliente: se valida antes de tocar la base de datos.
   if (!book || !isValid(book)) return { error: "Revisa los datos del libro." };
@@ -61,6 +62,18 @@ export async function saveBook(book: NewBook): Promise<SaveBookResult> {
   const { data: auth } = await supabase.auth.getClaims();
   const userId = auth?.claims?.sub;
   if (!userId) return { error: "Tu sesión terminó. Vuelve a ingresar." };
+
+  // shortcut: dos libros guardados al mismo tiempo pueden quedar con el mismo número; si llega a pasar, calcularlo en la
+  // base de datos (una función o un trigger) en vez de aquí.
+  const last = await supabase
+    .from("user_books")
+    .select("shelf_order")
+    .eq("user_id", userId)
+    .order("shelf_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (last.error) return { error: "No pudimos guardar tu libro. Intenta de nuevo." };
+  const shelfOrder = (last.data?.shelf_order ?? 0) + 1;
 
   const { data, error } = await supabase
     .from("user_books")
@@ -79,6 +92,7 @@ export async function saveBook(book: NewBook): Promise<SaveBookResult> {
       status: book.status,
       comment: book.comment,
       quote: book.quote.trim(),
+      shelf_order: shelfOrder,
     })
     .select("id")
     .single();
