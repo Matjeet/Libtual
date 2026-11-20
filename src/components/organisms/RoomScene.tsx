@@ -16,8 +16,10 @@ import { PaintingFrame, type FrameShape } from "@/components/atoms/PaintingFrame
 import { PaperBag, type TakenBook } from "@/components/atoms/PaperBag";
 import { SideTable } from "@/components/atoms/SideTable";
 import { ShelfChalkboard } from "@/components/molecules/ShelfChalkboard";
+import { flushSync } from "react-dom";
 import { BookCreator } from "@/components/organisms/BookCreator";
 import { OpenShelfBook, ShelfView } from "@/components/organisms/Bookshelf";
+import { canAnimate } from "@/components/organisms/BookStage";
 import { BookViewer, type ViewedBook } from "@/components/organisms/BookViewer";
 import { PaintingMarket } from "@/components/organisms/PaintingMarket";
 import type { ShelfSort } from "@/lib/books";
@@ -52,6 +54,9 @@ const subscribeRoomy = subscribeTo(ROOMY);
 const BAG_HOVER = "origin-bottom transition-transform duration-300 ease-out hover:scale-x-[1.04] hover:scale-y-[0.9] motion-reduce:transition-none";
 // Lo que asoma de la pizarra o de la bolsa cuando está detrás de la otra: 2.75rem (44 px, el área táctil mínima).
 const PEEK = "2.75rem";
+// Al pasar al frente, la pizarra sale hacia la izquierda y la bolsa hacia la derecha (un poco hacia arriba y ladeadas).
+const PULLED = { board: "translate(-14%, -10%) rotate(-4deg)", bag: "translate(14%, -10%) rotate(4deg)" };
+const NUDGED = { board: "translateX(-6%)", bag: "translateX(6%)" };
 
 // Un cuadro de la pared y su tamaño: "width" multiplica su ancho respecto a la columna y "grow" es su parte del alto
 // disponible frente al otro cuadro.
@@ -127,6 +132,30 @@ export function RoomScene({ children, paintings = {}, genres = [] }: { children:
   const roomy = useSyncExternalStore(subscribeRoomy, () => window.matchMedia(ROOMY).matches, () => false);
   // Cuál va adelante cuando la pizarra está detrás de la bolsa.
   const [front, setFront] = useState<"bag" | "board">("bag");
+  const boardRef = useRef<HTMLDivElement>(null);
+  const bagRef = useRef<HTMLDivElement>(null);
+  const shuffling = useRef(false);
+
+  // Como al barajar: la de atrás sale de detrás de la otra hacia su lado, cambian de capa y entra por encima a su lugar;
+  // la otra se corre un poco hacia el lado contrario y vuelve.
+  async function bringToFront(next: "bag" | "board") {
+    if (!canAnimate()) return setFront(next);
+    if (shuffling.current) return;
+    shuffling.current = true;
+    const other = next === "board" ? "bag" : "board";
+    const [incoming, outgoing] = next === "board" ? [boardRef.current!, bagRef.current!] : [bagRef.current!, boardRef.current!];
+    const out = { duration: 180, easing: "ease-in", fill: "forwards" } as const;
+    await Promise.all([
+      incoming.animate({ transform: ["none", PULLED[next]] }, out).finished,
+      outgoing.animate({ transform: ["none", NUDGED[other]] }, out).finished,
+    ]).catch(() => {});
+    flushSync(() => setFront(next));
+    for (const element of [incoming, outgoing]) element.getAnimations().forEach((animation) => animation.cancel());
+    const back = { duration: 220, easing: "ease-out" } as const;
+    incoming.animate({ transform: [PULLED[next], "none"] }, back);
+    outgoing.animate({ transform: [NUDGED[other], "none"] }, back);
+    shuffling.current = false;
+  }
   const board = { sort, onSortChange: setSort, genre, onGenreChange: setGenre, genres };
 
   const go = (next: number) => setIndex(Math.max(0, Math.min(PANELS.length - 1, next)));
@@ -212,6 +241,7 @@ export function RoomScene({ children, paintings = {}, genres = [] }: { children:
               <div className="relative shrink-0" style={{ paddingLeft: PEEK }}>
                 <ShelfChalkboard
                   {...board}
+                  ref={boardRef}
                   inert={front !== "board"}
                   className={`absolute inset-y-0 left-0 ${front === "board" ? "z-30" : "z-0"}`}
                   style={{ right: PEEK }}
@@ -221,13 +251,13 @@ export function RoomScene({ children, paintings = {}, genres = [] }: { children:
                   <button
                     type="button"
                     aria-label="Mostrar la pizarra para ordenar y filtrar la estantería"
-                    onClick={() => setFront("board")}
+                    onClick={() => bringToFront("board")}
                     className="absolute inset-y-0 left-0 z-10 cursor-pointer rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                     style={{ right: PEEK }}
                   />
                 )}
                 {/* Solo el dibujo de la bolsa recibe el clic: lo transparente (entre las asas) deja pasar el clic a la pizarra. */}
-                <div inert={front !== "bag"} className={`pointer-events-none relative ${front === "bag" ? "z-20" : "z-0"}`}>
+                <div ref={bagRef} inert={front !== "bag"} className={`pointer-events-none relative ${front === "bag" ? "z-20" : "z-0"}`}>
                   <PaperBag
                     className={`w-[min(16rem,calc(80cqw-2.75rem),50cqh)] [&_svg_*]:pointer-events-auto [@container(max-height:20rem)]:w-[min(16rem,calc(80cqw-2.75rem),111cqh)] xl:w-[calc(100cqw-2.75rem)] xl:[@container(max-height:20rem)]:w-[calc(100cqw-2.75rem)] ${BAG_HOVER}`}
                     taken={newBook !== null}
@@ -238,7 +268,7 @@ export function RoomScene({ children, paintings = {}, genres = [] }: { children:
                   <button
                     type="button"
                     aria-label="Mostrar la bolsa para agregar un libro"
-                    onClick={() => setFront("bag")}
+                    onClick={() => bringToFront("bag")}
                     className="absolute inset-y-0 right-0 z-20 cursor-pointer rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
                     style={{ left: PEEK }}
                   />
