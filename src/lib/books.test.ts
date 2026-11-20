@@ -20,7 +20,7 @@ describe("bookmarkColor", () => {
 describe("getUserBooks", () => {
   // Cliente simulado: devuelve las filas (o el error) y guarda la consulta que se hizo.
   const client = (result: { data: unknown; error: unknown }) => {
-    const query = { table: "", user: "", order: "" };
+    const query = { table: "", user: "", order: [] as string[] };
     const supabase = {
       from: (table: string) => {
         query.table = table;
@@ -28,7 +28,12 @@ describe("getUserBooks", () => {
           select: () => ({
             eq: (_column: string, user: string) => {
               query.user = user;
-              return { order: async (column: string) => ((query.order = column), result) };
+              // Dos .order() encadenados: el segundo devuelve el resultado.
+              return {
+                order: (first: string) => ({
+                  order: async (second: string) => ((query.order = [first, second]), result),
+                }),
+              };
             },
           }),
         };
@@ -37,7 +42,7 @@ describe("getUserBooks", () => {
     return { supabase: supabase as never, query };
   };
 
-  test("trae los libros del usuario en el orden en que los agregó", async () => {
+  test("trae los libros del usuario en el orden de su estantería y, a igual orden, en el que los agregó", async () => {
     const row = {
       id: "b1",
       title: "Rayuela",
@@ -71,7 +76,7 @@ describe("getUserBooks", () => {
         quote: "Andábamos sin buscarnos.",
       },
     ]);
-    expect(query).toEqual({ table: "user_books", user: "user-1", order: "created_at" });
+    expect(query).toEqual({ table: "user_books", user: "user-1", order: ["shelf_order", "created_at"] });
   });
 
   test("si la lectura falla, devuelve una estantería vacía", async () => {

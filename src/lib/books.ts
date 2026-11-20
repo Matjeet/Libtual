@@ -93,12 +93,13 @@ type BookRow = {
   quote: string;
 };
 
-// Libros del usuario en el orden en que los agregó. Si la lectura falla, la estantería queda vacía en vez de romper la página.
+// Libros del usuario en el orden de su estantería (shelf_order); a igual orden, el que se agregó primero. Si la lectura falla, la estantería queda vacía en vez de romper la página.
 export async function getUserBooks(supabase: Supabase, userId: string): Promise<ShelfBook[]> {
   const { data, error } = await supabase
     .from("user_books")
     .select("id, title, category, cover_color, font_color, title_font, author, year, genre, comment, comment_font, status, quote")
     .eq("user_id", userId)
+    .order("shelf_order")
     .order("created_at");
   if (error || !data) return [];
   return (data as BookRow[]).map((row) => ({
