@@ -2,7 +2,7 @@
 
 import { Check, ChevronDown } from "lucide-react";
 import { Cabin_Sketch, Schoolbell } from "next/font/google";
-import type { KeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 import { SHELF_SORTS, type ShelfSort } from "@/lib/books";
 
 const cabinSketch = Cabin_Sketch({ weight: "700", subsets: ["latin"], display: "swap" });
@@ -22,18 +22,27 @@ type ShelfChalkboardProps = {
   // Géneros de los libros del usuario.
   genres: string[];
   className?: string;
+  style?: CSSProperties;
+  // Detrás de la bolsa no se usa.
+  inert?: boolean;
 };
 
 // Pizarra colgada en la pared con el orden de la estantería (uno a la vez, por defecto Personalizado) y el filtro por género.
 // Todo se ve escrito con tiza; cada orden es un cuadro dibujado que lleva un check al elegirlo.
-export function ShelfChalkboard({ sort, onSortChange, genre, onGenreChange, genres, className = "" }: ShelfChalkboardProps) {
+// Si se le da un alto menor que su contenido (detrás de la bolsa), la pizarra se desplaza por dentro.
+export function ShelfChalkboard({ sort, onSortChange, genre, onGenreChange, genres, className = "", style, inert }: ShelfChalkboardProps) {
   // Las flechas cambian la opción elegida: no deben pasar de panel en el carrusel de la habitación.
   const keepArrows = (event: KeyboardEvent) => {
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") event.stopPropagation();
   };
   return (
     // Marco de madera y, dentro, la pizarra con manchas de borrador más claras.
-    <div onKeyDown={keepArrows} className={`wood-grain-x rounded-md p-1.5 shadow-[0_8px_14px_-6px_rgb(0_0_0/0.45)] ${className}`}>
+    <div
+      onKeyDown={keepArrows}
+      inert={inert}
+      style={style}
+      className={`wood-grain-x flex flex-col rounded-md p-1.5 shadow-[0_8px_14px_-6px_rgb(0_0_0/0.45)] ${className}`}
+    >
       <svg aria-hidden="true" className="absolute size-0">
         <filter id="chalk-rough">
           <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="3" />
@@ -41,7 +50,8 @@ export function ShelfChalkboard({ sort, onSortChange, genre, onGenreChange, genr
         </filter>
       </svg>
       <div
-        className={`flex flex-col gap-2 rounded-sm bg-[#25312b] bg-[radial-gradient(ellipse_at_25%_15%,rgb(255_255_255/0.09),transparent_55%),radial-gradient(ellipse_at_85%_85%,rgb(255_255_255/0.06),transparent_50%)] px-3 py-2.5 shadow-[inset_0_0_16px_rgb(0_0_0/0.55)] ${CHALK} ${schoolbell.className}`}
+        // relative: los radios sr-only (absolute) quedan dentro del scroll de la pizarra y no alargan la página.
+        className={`relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-sm bg-[#25312b] [scrollbar-color:rgb(243_239_228/0.45)_transparent] [scrollbar-width:thin] bg-[radial-gradient(ellipse_at_25%_15%,rgb(255_255_255/0.09),transparent_55%),radial-gradient(ellipse_at_85%_85%,rgb(255_255_255/0.06),transparent_50%)] px-3 py-2.5 shadow-[inset_0_0_16px_rgb(0_0_0/0.55)] ${CHALK} ${schoolbell.className}`}
       >
         <fieldset>
           <legend className={`mb-1 -rotate-2 text-2xl leading-tight ${ROUGH} ${cabinSketch.className}`}>Ordenado por</legend>
