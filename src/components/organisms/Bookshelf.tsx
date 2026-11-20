@@ -49,7 +49,7 @@ function slotRect(slot: HTMLElement) {
   return new DOMRect(shelf.left + slot.offsetLeft, shelf.top + slot.offsetTop, slot.offsetWidth, slot.offsetHeight);
 }
 
-type Press = { book: ShelfBook; x: number; y: number; timer?: ReturnType<typeof setTimeout> };
+type Press = { book: ShelfBook; button: HTMLElement; x: number; y: number; timer?: ReturnType<typeof setTimeout> };
 // El libro que se arrastra, el orden que se ve mientras tanto y su lugar en pantalla al levantarlo (de ahí parte la copia).
 type Drag = { book: ShelfBook; order: ShelfBook[]; rect: DOMRect };
 
@@ -134,22 +134,22 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
     return next.every((other, i) => other === order[i]) ? null : next;
   }
 
-  function lift(button: HTMLElement) {
+  function lift() {
     dragged.current = true;
-    setDrag({ book: press.current!.book, order: shelved, rect: slotRect(button) });
+    setDrag({ book: press.current!.book, order: shelved, rect: slotRect(press.current!.button) });
   }
 
   function onPointerDown(book: ShelfBook, event: PointerEvent<HTMLButtonElement>) {
     if (!event.isPrimary || event.button !== 0 || drag) return;
     dragged.current = false;
-    const button = event.currentTarget;
-    // Los movimientos siguen llegando a este libro aunque el puntero salga de él.
-    button.setPointerCapture?.(event.pointerId);
-    const timer = event.pointerType === "mouse" ? undefined : setTimeout(() => lift(button), HOLD_MS);
-    press.current = { book, x: event.clientX, y: event.clientY, timer };
+    // Los movimientos y el soltar llegan a la lista aunque el puntero salga de ella. La captura va en la lista y no en el
+    // libro: al reordenar, React mueve los <li> en el DOM y el navegador le quita la captura al elemento que se mueve.
+    listRef.current!.setPointerCapture?.(event.pointerId);
+    const timer = event.pointerType === "mouse" ? undefined : setTimeout(lift, HOLD_MS);
+    press.current = { book, button: event.currentTarget, x: event.clientX, y: event.clientY, timer };
   }
 
-  function onPointerMove(event: PointerEvent<HTMLButtonElement>) {
+  function onPointerMove(event: PointerEvent<HTMLUListElement>) {
     const current = press.current;
     if (!current) return;
     if (drag) {
@@ -166,11 +166,11 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
     if (current.timer !== undefined) {
       clearTimeout(current.timer);
       press.current = null;
-    } else lift(event.currentTarget);
+    } else lift();
   }
 
   // Al soltar, la copia vuela al hueco y el libro queda ahí.
-  function onPointerUp(event: PointerEvent<HTMLButtonElement>) {
+  function onPointerUp(event: PointerEvent<HTMLUListElement>) {
     clearTimeout(press.current?.timer);
     press.current = null;
     if (!drag) return;
@@ -236,7 +236,14 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
             {/* Cada libro ocupa el alto de un piso (pb-5 = el tablón): al llenarse un piso, el siguiente libro baja al de abajo
                 y queda parado sobre su tablón. data-book-id: la creación de un libro busca ahí el lugar del libro nuevo. */}
             {shown.length > 0 && (
-              <ul ref={listRef} aria-label="Libros" className="absolute inset-0 flex flex-wrap content-start gap-x-0.5 px-1.5">
+              <ul
+                ref={listRef}
+                aria-label="Libros"
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerCancel}
+                className="absolute inset-0 flex flex-wrap content-start gap-x-0.5 px-1.5"
+              >
                 {shown.map((book) => (
                   <li
                     key={book.id}
@@ -255,9 +262,6 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
                       aria-describedby="bookshelf-move-hint"
                       onClick={openBook(book)}
                       onPointerDown={(event) => onPointerDown(book, event)}
-                      onPointerMove={onPointerMove}
-                      onPointerUp={onPointerUp}
-                      onPointerCancel={onPointerCancel}
                       // Mantener el dedo sobre el libro no abre el menú del navegador.
                       onContextMenu={(event) => press.current && event.preventDefault()}
                       onKeyDown={(event) => onKeyDown(book, event)}
