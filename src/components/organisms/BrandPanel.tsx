@@ -15,13 +15,18 @@ export function BrandPanel({ title, description, className = "" }: BrandPanelPro
       {/* En oscuro el círculo es más oscuro que el panel: queda detrás del texto claro y así no le resta contraste. */}
       <div aria-hidden="true" className="absolute -bottom-20 -left-20 size-64 rounded-full bg-primary opacity-15 dark:bg-background dark:opacity-40" />
       {/* Libro animado arriba a la izquierda, lejos de los círculos. Hecho con HyperFrames (design/open-book): un GIF por
-          tema con el color del panel de fondo; con movimiento reducido se muestra el primer cuadro fijo. */}
-      <picture className="relative mb-auto">
-        <source media="(prefers-reduced-motion: reduce) and (prefers-color-scheme: dark)" srcSet="/animations/open-book-dark.png" />
-        <source media="(prefers-reduced-motion: reduce)" srcSet="/animations/open-book-light.png" />
-        <source media="(prefers-color-scheme: dark)" srcSet="/animations/open-book-dark.gif" />
-        <img src="/animations/open-book-light.gif" alt="" width={192} height={112} loading="lazy" className="block h-28 w-48" />
-      </picture>
+          modo con el color del panel de fondo; con movimiento reducido se muestra el primer cuadro fijo. Uno por modo,
+          escondido con dark: (sigue al modo elegido en el perfil); loading="lazy" no descarga el que está oculto. */}
+      <div className="relative mb-auto">
+        <picture className="dark:hidden">
+          <source media="(prefers-reduced-motion: reduce)" srcSet="/animations/open-book-light.png" />
+          <img src="/animations/open-book-light.gif" alt="" width={192} height={112} loading="lazy" className="block h-28 w-48" />
+        </picture>
+        <picture className="hidden dark:block">
+          <source media="(prefers-reduced-motion: reduce)" srcSet="/animations/open-book-dark.png" />
+          <img src="/animations/open-book-dark.gif" alt="" width={192} height={112} loading="lazy" className="block h-28 w-48" />
+        </picture>
+      </div>
       <p className="relative text-5xl font-bold tracking-tight">{title}</p>
       <p className="relative mt-3 max-w-sm text-lg">{description}</p>
     </div>
