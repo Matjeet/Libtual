@@ -9,18 +9,31 @@ afterEach(() => {
 });
 
 describe("ThemeSwitcher", () => {
-  test("por defecto marca Predeterminado y al elegir otro modo lo aplica", async () => {
+  test("Tema despliega las opciones; por defecto Predeterminado y al elegir otra la aplica", async () => {
+    const user = userEvent.setup();
     render(<ThemeSwitcher />);
-    expect(screen.getByRole("group", { name: "Modo" })).toBeInTheDocument();
+    const title = screen.getByRole("button", { name: "Tema" });
+    expect(title).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+
+    await user.click(title);
+    expect(title).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("group", { name: "Tema" })).toBeInTheDocument();
+    expect(screen.getAllByRole("radio").map((radio) => radio.closest("label")!.textContent)).toEqual(["Predeterminado", "Claro", "Oscuro"]);
     expect(screen.getByRole("radio", { name: "Predeterminado" })).toBeChecked();
-    await userEvent.setup().click(screen.getByRole("radio", { name: "Oscuro" }));
+
+    await user.click(screen.getByRole("radio", { name: "Oscuro" }));
     expect(screen.getByRole("radio", { name: "Oscuro" })).toBeChecked();
     expect(document.documentElement.dataset.theme).toBe("dark");
+
+    await user.click(title);
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
   });
 
-  test("muestra marcado el modo que ya estaba elegido", () => {
+  test("muestra marcado el modo que ya estaba elegido", async () => {
     document.documentElement.dataset.theme = "light";
     render(<ThemeSwitcher />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Tema" }));
     expect(screen.getByRole("radio", { name: "Claro" })).toBeChecked();
   });
 });
