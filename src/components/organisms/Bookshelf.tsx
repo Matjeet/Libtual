@@ -30,7 +30,7 @@ function slotRect(slot: HTMLElement) {
   return new DOMRect(shelf.left + slot.offsetLeft, shelf.top + slot.offsetTop, slot.offsetWidth, slot.offsetHeight);
 }
 
-// books: los libros del usuario, en el orden en que los agregó. Se acomodan de izquierda a derecha, piso por piso.
+// books: los libros del usuario, en el orden de su estantería. Se acomodan de izquierda a derecha, piso por piso.
 export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
   const open = use(OpenShelfBook);
   const openBook = (book: ShelfBook) => (event: MouseEvent<HTMLButtonElement>) => {
