@@ -410,7 +410,8 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
         ref={confirmRef}
         aria-labelledby="remove-book-question"
         onClose={() => setRemoving(null)}
-        className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl bg-card p-6 text-foreground shadow-xl backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+        // Desde xl, zoom agranda todo el modal un 20 % (ancho, texto, márgenes y botones).
+        className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl bg-card p-6 text-foreground shadow-xl backdrop:bg-black/40 backdrop:backdrop-blur-sm xl:[zoom:1.2]"
       >
         <p id="remove-book-question" className="text-lg font-medium">
           ¿Estás seguro que quieres sacar este libro de tu estantería? Se eliminará permanentemente.
