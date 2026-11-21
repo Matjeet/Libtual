@@ -49,3 +49,23 @@ export function BookPages({ colors, mirrored = false, className = "" }: { colors
     </svg>
   );
 }
+
+// Una hoja suelta, igual a la de arriba del libro abierto: la que gira al pasar la página. mirrored: la misma hoja vista
+// desde atrás, cuando ya pasó a la mitad izquierda.
+export function BookSheet({ mirrored = false, className = "" }: { mirrored?: boolean; className?: string }) {
+  const shade = `sheet-shade-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  return (
+    <svg viewBox={VIEW_BOX} preserveAspectRatio="none" aria-hidden="true" className={className}>
+      <defs>
+        <linearGradient id={shade} x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stopColor={PAPER.spine} />
+          <stop offset="0.14" stopColor={PAPER.light} />
+          <stop offset="0.35" stopColor={PAPER.page} />
+        </linearGradient>
+      </defs>
+      <g transform={mirrored ? "matrix(-1 0 0 1 96 0)" : undefined}>
+        <path d="M0 6C22 1 60 1 87 3V116H0Z" fill={`url(#${shade})`} stroke={PAPER.border} strokeWidth={0.5} />
+      </g>
+    </svg>
+  );
+}
