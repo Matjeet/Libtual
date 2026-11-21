@@ -25,6 +25,7 @@ export type NewBook = {
 };
 export type SaveBookResult = { id?: string; error?: string };
 export type MoveBookResult = { error?: string };
+export type DeleteBookResult = { error?: string };
 
 const HEX = /^#[0-9a-f]{6}$/i;
 // Mismos límites que la tabla user_books. Se cuentan caracteres (code points), como char_length en Postgres.
@@ -32,6 +33,7 @@ const length = (value: string) => [...value].length;
 const isText = (value: unknown, max: number): value is string => typeof value === "string" && length(value.trim()) >= 1 && length(value.trim()) <= max;
 const isInt = (value: unknown, min: number, max: number) => Number.isInteger(value) && (value as number) >= min && (value as number) <= max;
 const isColor = (value: unknown) => typeof value === "string" && HEX.test(value);
+const isId = (value: unknown): value is string => typeof value === "string" && value.length > 0;
 const isFont = (value: unknown, forComment: boolean) =>
   BOOK_FONTS.some((font) => font.value === value && !(forComment && "titleOnly" in font));
 
@@ -109,7 +111,6 @@ export async function saveBook(book: NewBook): Promise<SaveBookResult> {
 // de datos (no se confía en los del cliente) y solo de los libros del usuario.
 export async function moveBook(bookId: string, after: string | null, before: string | null): Promise<MoveBookResult> {
   const neighbors = [after, before].filter((id): id is string => id !== null);
-  const isId = (value: unknown) => typeof value === "string" && value.length > 0;
   if (!isId(bookId) || ![after, before].every((id) => id === null || isId(id)) || neighbors.includes(bookId)) {
     return { error: "No pudimos mover el libro." };
   }
@@ -142,6 +143,23 @@ export async function moveBook(bookId: string, after: string | null, before: str
     .eq("user_id", userId)
     .select("id");
   if (error || !moved?.length) return { error: "No pudimos mover el libro." };
+  refresh();
+  return {};
+}
+
+// Saca un libro de la estantería del usuario: lo elimina para siempre. Solo puede borrar sus propios libros (la política
+// de la tabla lo exige igual).
+export async function deleteBook(bookId: string): Promise<DeleteBookResult> {
+  if (!isId(bookId)) return { error: "No pudimos sacar el libro." };
+
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getClaims();
+  const userId = auth?.claims?.sub;
+  if (!userId) return { error: "Tu sesión terminó. Vuelve a ingresar." };
+
+  // select: confirma que se borró un libro del usuario (si no es suyo, no se borra ninguna fila).
+  const { data, error } = await supabase.from("user_books").delete().eq("id", bookId).eq("user_id", userId).select("id");
+  if (error || !data?.length) return { error: "No pudimos sacar el libro. Intenta de nuevo." };
   refresh();
   return {};
 }
