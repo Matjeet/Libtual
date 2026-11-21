@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 
-type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "destructive";
+type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "outline" | "destructive";
 
 // ComponentProps incluye ref (React 19 lo pasa como prop normal).
 type ButtonProps = ComponentProps<"button"> & {
@@ -13,6 +13,8 @@ const variantClasses: Record<ButtonVariant, string> = {
   danger: "border border-danger bg-danger/10 text-danger hover:bg-danger/20",
   // Acción secundaria que no compite con la principal (por ejemplo, Cancelar).
   ghost: "bg-transparent text-foreground hover:bg-foreground/10",
+  // Como ghost, pero con borde: se ve como botón sin competir con la acción principal.
+  outline: "border border-foreground/40 bg-transparent text-foreground hover:bg-foreground/10",
   // Confirmación final de una acción irreversible.
   destructive: "bg-destructive text-destructive-foreground hover:opacity-90",
 };

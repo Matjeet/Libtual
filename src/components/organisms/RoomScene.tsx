@@ -15,10 +15,11 @@ import {
 import { PaintingFrame, type FrameShape } from "@/components/atoms/PaintingFrame";
 import { PaperBag, type TakenBook } from "@/components/atoms/PaperBag";
 import { SideTable } from "@/components/atoms/SideTable";
+import { TrashCan } from "@/components/atoms/TrashCan";
 import { ShelfChalkboard } from "@/components/molecules/ShelfChalkboard";
 import { flushSync } from "react-dom";
 import { BookCreator } from "@/components/organisms/BookCreator";
-import { OpenShelfBook, ShelfView } from "@/components/organisms/Bookshelf";
+import { ABOVE_SHELF, BookTrash, OpenShelfBook, ShelfView } from "@/components/organisms/Bookshelf";
 import { canAnimate } from "@/components/organisms/BookStage";
 import { BookViewer, type ViewedBook } from "@/components/organisms/BookViewer";
 import { PaintingMarket } from "@/components/organisms/PaintingMarket";
@@ -132,6 +133,10 @@ export function RoomScene({ children, paintings = {}, genres = [] }: { children:
   const roomy = useSyncExternalStore(subscribeRoomy, () => window.matchMedia(ROOMY).matches, () => false);
   // Cuál va adelante cuando la pizarra está detrás de la bolsa.
   const [front, setFront] = useState<"bag" | "board">("bag");
+  // El bote de basura sale mientras se arrastra un libro: junto a la mesa desde xl; sobre la estantería en el carrusel.
+  const trashRef = useRef<HTMLDivElement>(null);
+  const [trashShown, setTrashShown] = useState(false);
+  const trashClasses = `pointer-events-none absolute z-40 origin-bottom transition duration-200 data-over:scale-115 motion-reduce:transition-none ${trashShown ? "opacity-100" : "scale-75 opacity-0"}`;
   const boardRef = useRef<HTMLDivElement>(null);
   const bagRef = useRef<HTMLDivElement>(null);
   const shuffling = useRef(false);
@@ -277,8 +282,13 @@ export function RoomScene({ children, paintings = {}, genres = [] }: { children:
             )}
           </div>
           {/* Con mouse, margen a los lados para que las flechas (44 px) no tapen los postes ni los libros. */}
-          <div inert={!wide && index !== BOOKSHELF} className="flex w-full shrink-0 flex-col pointer-fine:px-12 xl:pointer-fine:px-0">
-            <ShelfView value={{ sort, genre }}>{children}</ShelfView>
+          <div inert={!wide && index !== BOOKSHELF} className="relative flex w-full shrink-0 flex-col pointer-fine:px-12 xl:pointer-fine:px-0">
+            <BookTrash value={{ ref: trashRef, setShown: setTrashShown }}>
+              <ShelfView value={{ sort, genre }}>{children}</ShelfView>
+            </BookTrash>
+            {/* Apoyado sobre el tablón de arriba, en el espacio libre sobre la estantería o en el aire de la página: así no
+                tapa los libros del primer piso. */}
+            {!wide && <TrashCan ref={trashRef} className={`left-[calc(50%-1.75rem)] w-14 ${ABOVE_SHELF} ${trashClasses}`} />}
           </div>
           <div
             inert={!wide && index !== 2}
@@ -294,6 +304,9 @@ export function RoomScene({ children, paintings = {}, genres = [] }: { children:
               onChoose={setMarket}
             />
             <SideTable className="w-[min(18rem,85%,48cqh)] shrink-0 xl:w-full [@container(max-height:20rem)]:w-[min(18rem,85%,107cqh)] xl:[@container(max-height:20rem)]:w-full" />
+            {/* A la derecha de la mesa, en el suelo, sin salirse de la pantalla (--side-free): donde no hay lugar, queda
+                delante del extremo de la mesa. */}
+            {wide && <TrashCan ref={trashRef} className={`bottom-0 left-[min(calc(100%+0.5rem),calc(var(--side-free)-6rem))] w-24 ${trashClasses}`} />}
           </div>
         </div>
 

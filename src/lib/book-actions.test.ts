@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { moveBook, saveBook, type NewBook } from "./book-actions";
+import { deleteBook, moveBook, saveBook, type NewBook } from "./book-actions";
 
 type Op = [string, ...unknown[]];
 
@@ -14,6 +14,7 @@ const db = vi.hoisted(() => ({
   neighbors: { data: [] as unknown, error: null as unknown },
   inserted: { data: { id: "book-1" } as unknown, error: null as unknown },
   updated: { data: [{ id: "book-1" }] as unknown, error: null as unknown },
+  deleted: { data: [{ id: "book-1" }] as unknown, error: null as unknown },
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -23,7 +24,8 @@ vi.mock("@/lib/supabase/server", () => ({
       const query = { table, ops: [] as Op[] };
       db.queries.push(query);
       const has = (name: string) => query.ops.some(([op]) => op === name);
-      const result = () => (has("insert") ? db.inserted : has("update") ? db.updated : has("maybeSingle") ? db.last : db.neighbors);
+      const result = () =>
+        has("insert") ? db.inserted : has("update") ? db.updated : has("delete") ? db.deleted : has("maybeSingle") ? db.last : db.neighbors;
       const builder: object = new Proxy(
         {},
         {
@@ -64,6 +66,7 @@ beforeEach(() => {
   db.neighbors = { data: [], error: null };
   db.inserted = { data: { id: "book-1" }, error: null };
   db.updated = { data: [{ id: "book-1" }], error: null };
+  db.deleted = { data: [{ id: "book-1" }], error: null };
   refresh.mockReset();
 });
 
@@ -200,6 +203,29 @@ describe("moveBook", () => {
   test("sin sesión no mueve nada", async () => {
     db.userId = undefined;
     expect(await moveBook("b9", null, null)).toEqual({ error: "Tu sesión terminó. Vuelve a ingresar." });
+    expect(db.queries).toEqual([]);
+  });
+});
+
+describe("deleteBook", () => {
+  test("elimina el libro solo si es del usuario y refresca la página", async () => {
+    expect(await deleteBook("book-1")).toEqual({});
+    expect(db.queries[0].ops).toEqual([["delete"], ["eq", "id", "book-1"], ["eq", "user_id", "user-1"], ["select", "id"]]);
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  test("si el libro no es del usuario o falla, avisa y no refresca", async () => {
+    db.deleted = { data: [], error: null };
+    expect(await deleteBook("ajeno")).toEqual({ error: "No pudimos sacar el libro. Intenta de nuevo." });
+    db.deleted = { data: null, error: { message: "boom" } };
+    expect(await deleteBook("book-1")).toEqual({ error: "No pudimos sacar el libro. Intenta de nuevo." });
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  test("sin sesión o sin id no toca la base de datos", async () => {
+    expect(await deleteBook("")).toEqual({ error: "No pudimos sacar el libro." });
+    db.userId = undefined;
+    expect(await deleteBook("book-1")).toEqual({ error: "Tu sesión terminó. Vuelve a ingresar." });
     expect(db.queries).toEqual([]);
   });
 });

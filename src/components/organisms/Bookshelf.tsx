@@ -3,6 +3,7 @@
 import {
   createContext,
   use,
+  useEffect,
   useEffectEvent,
   useLayoutEffect,
   useOptimistic,
@@ -12,18 +13,23 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
+  type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
 import { BookSpine } from "@/components/atoms/BookSpine";
+import { Button } from "@/components/atoms/Button";
 import { canAnimate } from "@/components/organisms/BookStage";
 import type { ViewedBook } from "@/components/organisms/BookViewer";
-import { moveBook } from "@/lib/book-actions";
+import { deleteBook, moveBook } from "@/lib/book-actions";
 import { arrangeBooks, type ShelfBook, type ShelfSort } from "@/lib/books";
 
 // Alto estándar de cada piso (hueco + tablón). La estantería mide un número entero de pisos más el tablón de arriba
 // (1.25rem = 20px, con su canto incluido): se ven solo pisos completos y el espacio que sobra queda arriba, sobre la estantería.
 // round(down, …) calcula cuántos caben en el alto disponible; max() asegura al menos un piso en pantallas muy bajas.
 const FRAME_HEIGHT = "h-[calc(max(10.5rem,round(down,100%-1.25rem,10.5rem))+1.25rem)]";
+// Para apoyar algo sobre la estantería desde afuera (el bote de basura del carrusel): su borde de abajo queda en el tablón
+// de arriba. Mismo cálculo que FRAME_HEIGHT; el 100 % es el alto del contenedor de la estantería.
+export const ABOVE_SHELF = "bottom-[calc(max(10.5rem,round(down,100%-1.25rem,10.5rem))+1.25rem)]";
 
 // shortcut: pisos fijos de sobra (más de los que caben en 2560×1440) y sin scroll: los libros que no quepan en los pisos
 // visibles quedan ocultos. Agregar un piso cuando el último se llene y habilitar el scroll solo entonces.
@@ -47,6 +53,12 @@ export const OpenShelfBook = createContext<((viewing: ViewedBook) => void) | nul
 // Cómo se ve la estantería: el orden y el género elegidos en la pizarra (null = todos). Lo da RoomScene.
 export const ShelfView = createContext<{ sort: ShelfSort; genre: string | null }>({ sort: "custom", genre: null });
 
+// El bote de basura de la habitación. RoomScene lo muestra (setShown) mientras se arrastra un libro; soltar el libro
+// encima pide confirmar y lo saca de la estantería. Con el puntero encima, el bote lleva data-over.
+export const BookTrash = createContext<{ ref: RefObject<HTMLDivElement | null>; setShown: (shown: boolean) => void } | null>(null);
+// Margen alrededor del bote que también cuenta como encima (px): es más fácil apuntarle.
+const TRASH_MARGIN = 12;
+
 // Lugar del libro en pantalla sin la inclinación del hover: su caja dentro del <li> (relative), que no se transforma.
 function slotRect(slot: HTMLElement) {
   const shelf = slot.parentElement!.getBoundingClientRect();
@@ -62,9 +74,14 @@ type Drag = { book: ShelfBook; order: ShelfBook[]; rect: DOMRect };
 // En el orden personalizado se cambian de lugar arrastrándolos (o con las flechas del teclado): mientras se arrastra, los
 // demás se corren y abren el hueco donde quedará; al soltarlo se guarda su nuevo lugar (moveBook) y, mientras tanto, ya
 // se ve movido. Con un género elegido, el libro queda entre los dos de ese género que lo rodean.
+// Arrastrado hasta el bote de basura (o con la tecla Suprimir), el libro sale de la estantería después de confirmarlo.
 export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
   const open = use(OpenShelfBook);
   const { sort, genre } = use(ShelfView);
+  const trash = use(BookTrash);
+  // El libro que se va a sacar, mientras se confirma.
+  const [removing, setRemoving] = useState<ShelfBook | null>(null);
+  const confirmRef = useRef<HTMLDialogElement>(null);
   const movable = sort === "custom";
   const [shelved, setShelved] = useOptimistic(books);
   const [, startTransition] = useTransition();
@@ -147,8 +164,30 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
     return next.every((other, i) => other === order[i]) ? null : next;
   }
 
+  const overTrash = (x: number, y: number) => {
+    const box = trash?.ref.current?.getBoundingClientRect();
+    return !!box && x >= box.left - TRASH_MARGIN && x <= box.right + TRASH_MARGIN && y >= box.top - TRASH_MARGIN && y <= box.bottom + TRASH_MARGIN;
+  };
+  const markTrash = (over: boolean) => trash?.ref.current?.toggleAttribute("data-over", over);
+
+  useEffect(() => {
+    if (removing) confirmRef.current?.showModal();
+  }, [removing]);
+
+  // Confirmado: el libro ya no se ve mientras se elimina; si falla, vuelve.
+  function remove() {
+    const book = removing!;
+    startTransition(async () => {
+      setShelved(shelved.filter((other) => other !== book));
+      const result = await deleteBook(book.id);
+      setMessage(result.error ?? `${book.title} salió de tu estantería.`);
+    });
+    confirmRef.current?.close();
+  }
+
   function lift() {
     dragged.current = true;
+    trash?.setShown(true);
     setDrag({ book: press.current!.book, order: arranged, rect: slotRect(press.current!.button) });
   }
 
@@ -187,6 +226,9 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
     const current = press.current;
     if (!drag || event.pointerId !== current?.pointerId) return;
     ghostRef.current!.style.translate = `${event.clientX - current.x}px ${event.clientY - current.y}px`;
+    const over = overTrash(event.clientX, event.clientY);
+    markTrash(over);
+    if (over) return;
     const next = orderAt(event.clientX, event.clientY, drag);
     if (next) {
       snapshot();
@@ -194,11 +236,30 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
     }
   });
 
-  // Al soltar, la copia vuela al hueco y el libro queda ahí.
+  // Al soltar, la copia vuela al hueco y el libro queda ahí. Sobre el bote, cae adentro (el orden no cambia) y se pide
+  // confirmar que se saca el libro.
   const drop = useEffectEvent((event: globalThis.PointerEvent) => {
     if (!drag || event.pointerId !== press.current?.pointerId) return;
     event.stopPropagation();
     press.current = null;
+    markTrash(false);
+    if (overTrash(event.clientX, event.clientY)) {
+      const discard = () => {
+        trash?.setShown(false);
+        setDrag(null);
+        setRemoving(drag.book);
+      };
+      if (!canAnimate()) return discard();
+      const bin = trash!.ref.current!.getBoundingClientRect();
+      const ghost = ghostRef.current!;
+      const [dx, dy] = [bin.left + bin.width / 2 - drag.rect.left - drag.rect.width / 2, bin.top + bin.height / 4 - drag.rect.top - drag.rect.height / 2];
+      ghost.animate(
+        { translate: [ghost.style.translate || "0px 0px", `${dx}px ${dy}px`], scale: [1, 0.2], opacity: [1, 0] },
+        { duration: 200, easing: "ease-in", fill: "forwards" },
+      ).onfinish = discard;
+      return;
+    }
+    trash?.setShown(false);
     const land = () => {
       setDrag(null);
       save(drag.book, drag.order);
@@ -219,6 +280,8 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
   const cancel = useEffectEvent((event: globalThis.PointerEvent) => {
     if (event.pointerId !== press.current?.pointerId) return;
     press.current = null;
+    markTrash(false);
+    trash?.setShown(false);
     setDrag(null);
   });
 
@@ -236,8 +299,12 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
     };
   }, [dragging]);
 
-  // Teclado: las flechas mueven el libro enfocado un lugar a la izquierda o a la derecha.
+  // Teclado: las flechas mueven el libro enfocado un lugar a la izquierda o a la derecha; Suprimir lo saca de la estantería.
   function onKeyDown(book: ShelfBook, event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "Delete" && !drag) {
+      event.preventDefault();
+      return setRemoving(book);
+    }
     const step = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
     if (!step || !movable || drag) return;
     // Las flechas sobre un libro no pasan de panel en el carrusel de la habitación.
@@ -286,7 +353,7 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
                     key={book.id}
                     data-book-id={book.id}
                     // El libro que se arrastra deja su hueco vacío: ahí quedará al soltarlo.
-                    className={`group relative flex h-[10.5rem] items-end pb-5 focus-within:z-10 hover:z-10 ${PERSPECTIVE} ${drag?.book === book ? "opacity-0" : ""}`}
+                    className={`group relative flex h-[10.5rem] items-end pb-5 focus-within:z-10 hover:z-10 ${PERSPECTIVE} ${drag?.book === book || removing === book ? "opacity-0" : ""}`}
                   >
                     {/* Al pasar el mouse el libro sale un poco, como al sacarlo: se inclina hacia adelante sobre su base y
                         deja ver arriba el canto de las hojas entre las dos pastas. Con un clic se abre.
@@ -329,7 +396,8 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
             <p id="bookshelf-move-hint" className="sr-only">
               {movable
                 ? "Arrástralo o usa las flechas izquierda y derecha para cambiarlo de lugar."
-                : "Para cambiarlo de lugar, ordena la estantería como Personalizado."}
+                : "Para cambiarlo de lugar, ordena la estantería como Personalizado."}{" "}
+              Con la tecla Suprimir lo sacas de la estantería.
             </p>
             <p aria-live="polite" className="sr-only">
               {message}
@@ -338,6 +406,25 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
           <div className="wood-grain-y w-5 shrink-0 shadow-[inset_4px_0_0_var(--color-wood-edge)]" />
         </div>
       </div>
+      <dialog
+        ref={confirmRef}
+        aria-labelledby="remove-book-question"
+        onClose={() => setRemoving(null)}
+        // Desde xl, zoom agranda todo el modal un 20 % (ancho, texto, márgenes y botones).
+        className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl bg-card p-6 text-foreground shadow-xl backdrop:bg-black/40 backdrop:backdrop-blur-sm xl:[zoom:1.2]"
+      >
+        <p id="remove-book-question" className="text-lg font-medium">
+          ¿Estás seguro que quieres sacar este libro de tu estantería? Se eliminará permanentemente.
+        </p>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={() => confirmRef.current?.close()}>
+            Cancelar
+          </Button>
+          <Button variant="destructive" onClick={remove}>
+            Eliminar
+          </Button>
+        </div>
+      </dialog>
       {/* Copia del libro que sigue al puntero, fuera de la estantería (que recorta) y del carrusel (que se desplaza). */}
       {drag &&
         createPortal(

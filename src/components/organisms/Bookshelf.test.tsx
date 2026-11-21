@@ -1,10 +1,12 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
-import { Bookshelf, OpenShelfBook, ShelfView } from "./Bookshelf";
+import { createRef } from "react";
+import { BookTrash, Bookshelf, OpenShelfBook, ShelfView } from "./Bookshelf";
 
 const moveBook = vi.hoisted(() => vi.fn<(...args: unknown[]) => Promise<{ error?: string }>>(async () => ({})));
-vi.mock("@/lib/book-actions", () => ({ moveBook }));
+const deleteBook = vi.hoisted(() => vi.fn<(id: string) => Promise<{ error?: string }>>(async () => ({})));
+vi.mock("@/lib/book-actions", () => ({ moveBook, deleteBook }));
 
 const titles = () => screen.getAllByRole("listitem").map((li) => li.textContent);
 const book = (id: string, title: string) => ({ id, title, category: "medium" as const, coverColor: "#2f7a96", fontColor: "#faf0d1", titleFont: "lora", ...DETAILS });
@@ -68,7 +70,9 @@ describe("Bookshelf", () => {
     const { rerender } = render(<Bookshelf books={[rayuela, aura, bestiario]} />);
     const user = userEvent.setup();
     const button = screen.getByRole("button", { name: "Aura" });
-    expect(button).toHaveAccessibleDescription("Arrástralo o usa las flechas izquierda y derecha para cambiarlo de lugar.");
+    expect(button).toHaveAccessibleDescription(
+      "Arrástralo o usa las flechas izquierda y derecha para cambiarlo de lugar. Con la tecla Suprimir lo sacas de la estantería.",
+    );
     button.focus();
     await user.keyboard("{ArrowLeft}");
     // Mientras se guarda ya se ve en su nuevo lugar.
@@ -130,7 +134,9 @@ describe("Bookshelf", () => {
     );
     expect(titles()).toEqual(["Aura", "Rayuela"]);
     const aura = screen.getByRole("button", { name: "Aura" });
-    expect(aura).toHaveAccessibleDescription("Para cambiarlo de lugar, ordena la estantería como Personalizado.");
+    expect(aura).toHaveAccessibleDescription(
+      "Para cambiarlo de lugar, ordena la estantería como Personalizado. Con la tecla Suprimir lo sacas de la estantería.",
+    );
     aura.focus();
     const user = userEvent.setup();
     await user.keyboard("{ArrowRight}");
@@ -138,7 +144,8 @@ describe("Bookshelf", () => {
 
     // Personalizado con el género: Aura pasa antes de Rayuela, su vecino visible (Ficciones, de otro género, no cuenta).
     moveBook.mockClear();
-    moveBook.mockImplementationOnce(() => new Promise(() => {}));
+    let finish!: (result: { error?: string }) => void;
+    moveBook.mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)));
     rerender(
       <ShelfView value={{ sort: "custom", genre: "Novela" }}>
         <Bookshelf books={books} />
@@ -149,5 +156,61 @@ describe("Bookshelf", () => {
     await user.keyboard("{ArrowLeft}");
     expect(moveBook).toHaveBeenCalledWith("b3", null, "b1");
     expect(titles()).toEqual(["Aura", "Rayuela"]);
+    // React agrupa las acciones pendientes de todos los tests: se termina para no frenar las siguientes.
+    await act(async () => finish({}));
+  });
+
+  test("arrastrado hasta el bote, pide confirmar: Cancelar lo deja y Eliminar lo saca de la estantería", async () => {
+    deleteBook.mockClear();
+    let finish!: (result: { error?: string }) => void;
+    deleteBook.mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)));
+    // El bote ocupa de (500, 500) a (600, 600).
+    const ref = createRef<HTMLDivElement>();
+    const setShown = vi.fn();
+    render(
+      <BookTrash value={{ ref, setShown }}>
+        <div ref={ref} />
+        <Bookshelf books={[book("b1", "Rayuela"), book("b2", "Aura")]} />
+      </BookTrash>,
+    );
+    ref.current!.getBoundingClientRect = () => new DOMRect(500, 500, 100, 100);
+    const pointer = { pointerId: 3, isPrimary: true, button: 0, pointerType: "mouse" };
+    const dragToTrash = () => {
+      fireEvent.pointerDown(screen.getByRole("button", { name: "Rayuela" }), { ...pointer, clientX: 10, clientY: 10 });
+      fireEvent.pointerMove(screen.getByRole("list"), { ...pointer, clientX: 40, clientY: 10 });
+      expect(setShown).toHaveBeenLastCalledWith(true);
+      fireEvent.pointerMove(document.body, { ...pointer, clientX: 550, clientY: 550 });
+      expect(ref.current).toHaveAttribute("data-over");
+      fireEvent.pointerUp(document.body, { ...pointer, clientX: 550, clientY: 550 });
+      expect(setShown).toHaveBeenLastCalledWith(false);
+      expect(ref.current).not.toHaveAttribute("data-over");
+    };
+
+    dragToTrash();
+    const dialog = screen.getByRole("dialog", { name: "¿Estás seguro que quieres sacar este libro de tu estantería? Se eliminará permanentemente." });
+    const user = userEvent.setup();
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(deleteBook).not.toHaveBeenCalled();
+    expect(titles()).toEqual(["Rayuela", "Aura"]);
+
+    dragToTrash();
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Eliminar" }));
+    expect(deleteBook).toHaveBeenCalledWith("b1");
+    // Mientras se elimina, ya no está en la estantería.
+    expect(titles()).toEqual(["Aura"]);
+    await act(async () => finish({}));
+  });
+
+  test("con la tecla Suprimir también se saca un libro, después de confirmarlo; si falla, vuelve y se avisa", async () => {
+    deleteBook.mockResolvedValueOnce({ error: "No pudimos sacar el libro. Intenta de nuevo." });
+    render(<Bookshelf books={[book("b1", "Rayuela"), book("b2", "Aura")]} />);
+    screen.getByRole("button", { name: "Aura" }).focus();
+    const user = userEvent.setup();
+    await user.keyboard("{Delete}");
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Eliminar" }));
+    expect(deleteBook).toHaveBeenCalledWith("b2");
+    expect(await screen.findByText("No pudimos sacar el libro. Intenta de nuevo.")).toBeInTheDocument();
+    await waitFor(() => expect(titles()).toEqual(["Rayuela", "Aura"]));
   });
 });
