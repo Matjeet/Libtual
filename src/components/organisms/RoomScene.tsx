@@ -306,7 +306,7 @@ export function RoomScene({ children, paintings = {}, genres = [] }: { children:
             <SideTable className="w-[min(18rem,85%,48cqh)] shrink-0 xl:w-full [@container(max-height:20rem)]:w-[min(18rem,85%,107cqh)] xl:[@container(max-height:20rem)]:w-full" />
             {/* A la derecha de la mesa, en el suelo, sin salirse de la pantalla (--side-free): donde no hay lugar, queda
                 delante del extremo de la mesa. */}
-            {wide && <TrashCan ref={trashRef} className={`bottom-0 left-[min(calc(100%+0.5rem),calc(var(--side-free)-5rem))] w-20 ${trashClasses}`} />}
+            {wide && <TrashCan ref={trashRef} className={`bottom-0 left-[min(calc(100%+0.5rem),calc(var(--side-free)-6rem))] w-24 ${trashClasses}`} />}
           </div>
         </div>
 
