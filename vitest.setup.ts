@@ -35,6 +35,15 @@ if (typeof window !== "undefined" && !window.matchMedia) {
     }) as MediaQueryList;
 }
 
+// jsdom no implementa ResizeObserver (lo usa la estantería para contar sus pisos al cambiar de tamaño).
+if (typeof window !== "undefined" && !window.ResizeObserver) {
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // next/font solo funciona dentro de Next: en los tests cada fuente devuelve su nombre como familia.
 vi.mock("next/font/google", () => {
   // El nombre de cada función es el de la fuente con "_" en lugar de espacios (Playfair_Display → "Playfair Display").
