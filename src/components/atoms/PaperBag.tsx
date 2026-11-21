@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
 import type { BookColors } from "@/components/atoms/BookParts";
 
 // Bolsa de papel kraft con "Libtual", dibujada solo de la mitad hacia arriba: abajo queda cortada
@@ -38,6 +38,8 @@ export function PaperBag({ className = "", taken = false, onTakeBook }: PaperBag
   const bookRef = useRef<SVGGElement>(null);
   const coverRef = useRef<SVGRectElement>(null);
   const book = BOOKS[index];
+  // El id de useId puede traer caracteres que no sirven dentro de url(#…).
+  const clipId = `bag-floor-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
   const handOver = useEffectEvent(() => {
     const svg = svgRef.current!.getBoundingClientRect();
@@ -95,14 +97,21 @@ export function PaperBag({ className = "", taken = false, onTakeBook }: PaperBag
         <path d="M88 56C88 10 150 10 150 56" fill="none" stroke={KRAFT.crease} strokeWidth={5} />
         {/* Un libro guardado entre la pared de atrás y la cara de adelante: escondido bajo el borde de la bolsa,
             al pasar el mouse sube y asoma su parte de abajo (el canto de las hojas); al hacer clic sale del todo. */}
-        <g ref={bookRef} className={bookPosition}>
-          <g transform="rotate(-8 80 70)">
-            <rect ref={coverRef} x={50} y={20} width={58} height={100} rx={3} fill={book.cover} stroke={book.line} data-testid="book-cover" strokeWidth={1.5} />
-            <rect x={50} y={20} width={11} height={100} rx={2} fill={book.spine} />
-            <rect x={53} y={12} width={52} height={9} rx={2} fill={PAGES} stroke={book.line} strokeWidth={1.5} />
-            <path d="M57 15.5H101M57 18H101" stroke={book.line} strokeWidth={0.75} opacity={0.35} />
-            <path d="M61 31H108M61 37H108" stroke={book.band} strokeWidth={3} />
-            <ellipse cx={84} cy={58} rx={13} ry={7} fill={book.spine} />
+        {/* El libro escondido llega más abajo que el fondo de la bolsa: se recorta ahí para que no asome cuando la bolsa
+            se mueve (al intercambiarla con la pizarra). Hacia arriba no se recorta: puede salir de la bolsa. */}
+        <clipPath id={clipId}>
+          <rect x={-200} y={-400} width={600} height={580} />
+        </clipPath>
+        <g clipPath={`url(#${clipId})`}>
+          <g ref={bookRef} className={bookPosition}>
+            <g transform="rotate(-8 80 70)">
+              <rect ref={coverRef} x={50} y={20} width={58} height={100} rx={3} fill={book.cover} stroke={book.line} data-testid="book-cover" strokeWidth={1.5} />
+              <rect x={50} y={20} width={11} height={100} rx={2} fill={book.spine} />
+              <rect x={53} y={12} width={52} height={9} rx={2} fill={PAGES} stroke={book.line} strokeWidth={1.5} />
+              <path d="M57 15.5H101M57 18H101" stroke={book.line} strokeWidth={0.75} opacity={0.35} />
+              <path d="M61 31H108M61 37H108" stroke={book.band} strokeWidth={3} />
+              <ellipse cx={84} cy={58} rx={13} ry={7} fill={book.spine} />
+            </g>
           </g>
         </g>
         {/* Cara de adelante, con el doblez del borde superior. */}
