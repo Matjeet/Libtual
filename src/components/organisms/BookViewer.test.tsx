@@ -17,6 +17,7 @@ const BOOK = {
   commentFont: "caveat",
   status: "finished",
   quote: "El tiempo descubre la verdad.",
+  pages: 416,
   createdAt: "2026-11-15T10:00:00+00:00",
   updatedAt: "2026-11-15T10:00:00+00:00",
 };
