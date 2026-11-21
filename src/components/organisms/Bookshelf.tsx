@@ -31,9 +31,12 @@ const FRAME_HEIGHT = "h-[calc(max(10.5rem,round(down,100%-1.25rem,10.5rem))+1.25
 // de arriba. Mismo cálculo que FRAME_HEIGHT; el 100 % es el alto del contenedor de la estantería.
 export const ABOVE_SHELF = "bottom-[calc(max(10.5rem,round(down,100%-1.25rem,10.5rem))+1.25rem)]";
 
-// shortcut: pisos fijos de sobra (más de los que caben en 2560×1440) y sin scroll: los libros que no quepan en los pisos
-// visibles quedan ocultos. Agregar un piso cuando el último se llene y habilitar el scroll solo entonces.
+// Pisos antes de medir (en el servidor): de sobra para cualquier pantalla. Al medir quedan los que se ven y, si los libros
+// no caben, uno más por cada fila de libros: entonces la estantería hace scroll.
 const SHELVES = 10;
+// Cerca del borde de arriba o de abajo, arrastrar un libro desplaza la estantería (px por movimiento).
+const EDGE = 40;
+const EDGE_STEP = 12;
 
 // Cada libro tiene su propia perspectiva, centrada en él: todos se ven sacar igual, estén donde estén.
 const PERSPECTIVE = "perspective-[500px]";
@@ -91,6 +94,8 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
   // Hubo arrastre: el clic que llega al soltar no abre el libro.
   const dragged = useRef(false);
   const listRef = useRef<HTMLUListElement>(null);
+  const shelfRef = useRef<HTMLElement>(null);
+  const [shelves, setShelves] = useState(SHELVES);
   const ghostRef = useRef<HTMLDivElement>(null);
   // Dónde estaba cada libro en pantalla antes de cambiar el orden: desde ahí se desliza a su nuevo lugar.
   const before = useRef<Map<string, DOMRect> | null>(null);
@@ -99,6 +104,22 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
 
   const items = () => [...(listRef.current?.children ?? [])] as HTMLElement[];
   const snapshot = () => (before.current = new Map(items().map((li) => [li.dataset.bookId!, li.getBoundingClientRect()])));
+
+  // Los pisos que caben en el alto de la estantería, o los que ocupan los libros si son más.
+  const countShelves = useEffectEvent(() => {
+    const section = shelfRef.current!;
+    const row = (section.querySelector("[data-testid=shelf]") as HTMLElement).offsetHeight;
+    if (!row) return;
+    const last = items().at(-1);
+    setShelves(Math.max(1, Math.round(section.clientHeight / row), last ? Math.round(last.offsetTop / row) + 1 : 0));
+  });
+  // Después de cada cambio: otro orden o filtro puede ocupar otra cantidad de filas con los mismos libros.
+  useLayoutEffect(() => countShelves());
+  useLayoutEffect(() => {
+    const observer = new ResizeObserver(() => countShelves());
+    observer.observe(shelfRef.current!);
+    return () => observer.disconnect();
+  }, []);
 
   useLayoutEffect(() => {
     const prev = before.current;
@@ -145,7 +166,8 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
   // Debajo de la estantería cuenta como el último piso visible: los pisos que no caben quedan ocultos (ver SHELVES).
   function orderAt(x: number, y: number, { book, order }: Drag) {
     const box = listRef.current!.getBoundingClientRect();
-    const [px, py] = [x - box.left, Math.min(y - box.top, box.height - 1)];
+    const visible = shelfRef.current!.getBoundingClientRect();
+    const [px, py] = [x - box.left, Math.min(y, visible.bottom - 1) - box.top];
     const lis = items();
     const last = lis.at(-1);
     const row = lis.filter((li) => py >= li.offsetTop && py < li.offsetTop + li.offsetHeight);
@@ -229,6 +251,11 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
     const over = overTrash(event.clientX, event.clientY);
     markTrash(over);
     if (over) return;
+    // Cerca del borde de arriba o de abajo, la estantería se desplaza para llegar a los pisos que no se ven.
+    const section = shelfRef.current!;
+    const { top, bottom } = section.getBoundingClientRect();
+    if (event.clientY > bottom - EDGE && event.clientY < bottom + EDGE) section.scrollTop += EDGE_STEP;
+    else if (event.clientY < top + EDGE && event.clientY > top - EDGE) section.scrollTop -= EDGE_STEP;
     const next = orderAt(event.clientX, event.clientY, drag);
     if (next) {
       snapshot();
@@ -294,8 +321,13 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
       ["pointercancel", (event: globalThis.PointerEvent) => cancel(event)],
     ] as const;
     for (const [type, listener] of listeners) window.addEventListener(type, listener, true);
+    // Con el dedo, mientras se arrastra un libro la estantería no se desplaza con el gesto (los libros dejan desplazarla
+    // en vertical, touch-pan-y, antes de levantarlos).
+    const holdScroll = (event: TouchEvent) => event.cancelable && event.preventDefault();
+    window.addEventListener("touchmove", holdScroll, { passive: false });
     return () => {
       for (const [type, listener] of listeners) window.removeEventListener(type, listener, true);
+      window.removeEventListener("touchmove", holdScroll);
     };
   }, [dragging]);
 
@@ -326,11 +358,16 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
         <div className="flex min-h-0 flex-1">
           {/* El canto interior más oscuro da profundidad al hueco. */}
           <div className="wood-grain-y w-5 shrink-0 shadow-[inset_-4px_0_0_var(--color-wood-edge)]" />
-          <section aria-labelledby="bookshelf-title" className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          {/* Hace scroll solo si los libros llenan los pisos que se ven, sin barra: se desplaza con el dedo o la rueda. */}
+          <section
+            ref={shelfRef}
+            aria-labelledby="bookshelf-title"
+            className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             <h1 id="bookshelf-title" className="sr-only">
               Tu estantería
             </h1>
-            {Array.from({ length: SHELVES }, (_, i) => (
+            {Array.from({ length: shelves }, (_, i) => (
               <div key={i} data-testid="shelf" className="flex h-[10.5rem] shrink-0 flex-col">
                 {/* Fondo oscuro del hueco, con la sombra que deja el tablón de arriba. */}
                 <div className="flex-1 bg-wood-back shadow-[inset_0_10px_12px_-8px_rgb(0_0_0/0.7)]" />
@@ -359,7 +396,8 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
                         deja ver arriba el canto de las hojas entre las dos pastas. Con un clic se abre.
                         Excepción a los 44 px de área táctil: el ancho es el del lomo (24 a 56 px, cumple el mínimo de 24 px de
                         WCAG 2.5.8) y los libros cubren el piso sin huecos, así que todo toque cae en algún libro.
-                        touch-none: el dedo arrastra el libro (la página no hace scroll y el carrusel usa pointer events). */}
+                        touch-pan-y: con el dedo, deslizar en vertical desplaza la estantería; mantenerlo quieto levanta el libro
+                        (y desde ahí el gesto ya no desplaza nada) y en horizontal el carrusel usa pointer events. */}
                     <button
                       type="button"
                       aria-haspopup="dialog"
@@ -369,7 +407,7 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
                       // Mantener el dedo sobre el libro no abre el menú del navegador.
                       onContextMenu={(event) => press.current && event.preventDefault()}
                       onKeyDown={(event) => onKeyDown(book, event)}
-                      className={`relative touch-none select-none outline-none transform-3d [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${drag ? "cursor-grabbing" : "cursor-pointer"} ${PULL}`}
+                      className={`relative touch-pan-y select-none outline-none transform-3d [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${drag ? "cursor-grabbing" : "cursor-pointer"} ${PULL}`}
                     >
                       <BookSpine
                         title={book.title}

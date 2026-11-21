@@ -14,10 +14,24 @@ const book = (id: string, title: string) => ({ id, title, category: "medium" as 
 const DETAILS = { author: "Julio Cortázar", year: 1963, genre: "Novela", comment: "Un juego.", commentFont: "lora", status: "pending", quote: "", createdAt: "2026-11-15T10:00:00+00:00", updatedAt: "2026-11-15T10:00:00+00:00" };
 
 describe("Bookshelf", () => {
-  test("es una región con título y, sin libros, no tiene scroll", () => {
-    render(<Bookshelf />);
+  test("tiene los pisos que caben y, si los libros llenan más, uno por cada fila de libros, con scroll sin barra", () => {
+    // Medidas simuladas: cada piso mide 168 px, en la estantería caben 2 y cada libro ocupa su propia fila.
+    const height = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
+      return this.dataset.testid === "shelf" ? 168 : 0;
+    });
+    const visible = vi.spyOn(Element.prototype, "clientHeight", "get").mockImplementation(function (this: Element) {
+      return this.tagName === "SECTION" ? 336 : 0;
+    });
+    const top = vi.spyOn(HTMLElement.prototype, "offsetTop", "get").mockImplementation(function (this: HTMLElement) {
+      return this.tagName === "LI" ? [...this.parentElement!.children].indexOf(this) * 168 : 0;
+    });
+    const { rerender } = render(<Bookshelf />);
     const shelf = screen.getByRole("region", { name: "Tu estantería" });
-    expect(shelf.className).toContain("overflow-hidden");
+    expect(shelf).toHaveClass("overflow-y-auto", "[scrollbar-width:none]");
+    expect(screen.getAllByTestId("shelf")).toHaveLength(2);
+    rerender(<Bookshelf books={["b1", "b2", "b3", "b4", "b5"].map((id) => book(id, id))} />);
+    expect(screen.getAllByTestId("shelf")).toHaveLength(5);
+    for (const spy of [height, visible, top]) spy.mockRestore();
   });
 
   test("todos los pisos tienen el mismo alto estándar", () => {
