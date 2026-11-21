@@ -28,6 +28,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   - El contenido de la página (títulos, textos, formularios, paneles) vive en un contenedor centrado con ancho máximo (`MainTemplate`, `max-w-6xl`) y puede quedar centrado con espacio a los lados en pantallas grandes. **No se agrega contenido solo para llenar espacio.**
 - Los inputs usan al menos 16 px de tamaño de letra, para que iOS no haga zoom al enfocarlos.
 - Los elementos flotantes (listas desplegables, calendarios, menús) deben caber en la pantalla en todos los anchos.
+- Habitación de `/inicio`: en pantallas pequeñas (donde se usa el carrusel) y en las bajas, **los cuadros tienen prioridad**. Ningún otro componente los tapa, los esconde ni los achica: lo que se agregue cerca de ellos se acomoda en el espacio que queda (por ejemplo, la pizarra va detrás de la bolsa y se pasa al frente con un clic).
 
 ## Revisión de responsive con el agente `responsive-reviewer`
 

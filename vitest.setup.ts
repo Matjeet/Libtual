@@ -39,10 +39,10 @@ if (typeof window !== "undefined" && !window.matchMedia) {
 vi.mock("next/font/google", () => {
   // El nombre de cada función es el de la fuente con "_" en lugar de espacios (Playfair_Display → "Playfair Display").
   const names = [
-    "Abril_Fatface", "Caveat", "Cinzel", "Cormorant_Garamond", "Courier_Prime", "Creepster", "Crimson_Pro", "Dancing_Script",
+    "Abril_Fatface", "Cabin_Sketch", "Caveat", "Cinzel", "Cormorant_Garamond", "Courier_Prime", "Creepster", "Crimson_Pro", "Dancing_Script",
     "EB_Garamond", "Great_Vibes", "IM_Fell_English", "Indie_Flower", "Josefin_Sans", "Libre_Baskerville", "Lobster", "Lora",
     "Merriweather", "Montserrat", "Nunito", "Orbitron", "Pacifico", "Playfair_Display", "Quicksand", "Raleway", "Satisfy",
-    "Spectral", "Special_Elite", "Uncial_Antiqua", "UnifrakturMaguntia",
+    "Schoolbell", "Spectral", "Special_Elite", "Uncial_Antiqua", "UnifrakturMaguntia",
   ];
   return Object.fromEntries(names.map((name) => [name, () => ({ className: "", variable: "", style: { fontFamily: name.replaceAll("_", " ") } })]));
 });

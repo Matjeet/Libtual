@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, test } from "vitest";
-import { bookCategory, bookmarkColor, getUserBooks } from "./books";
+import { arrangeBooks, bookCategory, bookGenres, bookmarkColor, getUserBooks, type ShelfBook } from "./books";
 
 describe("bookCategory", () => {
   test("clasifica por páginas: corto hasta 200, mediano hasta 400, largo hasta 600 y extra largo desde 601", () => {
@@ -20,7 +20,7 @@ describe("bookmarkColor", () => {
 describe("getUserBooks", () => {
   // Cliente simulado: devuelve las filas (o el error) y guarda la consulta que se hizo.
   const client = (result: { data: unknown; error: unknown }) => {
-    const query = { table: "", user: "", order: "" };
+    const query = { table: "", user: "", order: [] as string[] };
     const supabase = {
       from: (table: string) => {
         query.table = table;
@@ -28,7 +28,12 @@ describe("getUserBooks", () => {
           select: () => ({
             eq: (_column: string, user: string) => {
               query.user = user;
-              return { order: async (column: string) => ((query.order = column), result) };
+              // Dos .order() encadenados: el segundo devuelve el resultado.
+              return {
+                order: (first: string) => ({
+                  order: async (second: string) => ((query.order = [first, second]), result),
+                }),
+              };
             },
           }),
         };
@@ -37,7 +42,7 @@ describe("getUserBooks", () => {
     return { supabase: supabase as never, query };
   };
 
-  test("trae los libros del usuario en el orden en que los agregó", async () => {
+  test("trae los libros del usuario en el orden de su estantería y, a igual orden, en el que los agregó", async () => {
     const row = {
       id: "b1",
       title: "Rayuela",
@@ -52,6 +57,8 @@ describe("getUserBooks", () => {
       comment_font: "caveat",
       status: "reading",
       quote: "Andábamos sin buscarnos.",
+      created_at: "2026-11-15T10:00:00+00:00",
+      updated_at: "2026-11-18T09:30:00+00:00",
     };
     const { supabase, query } = client({ data: [row], error: null });
     expect(await getUserBooks(supabase, "user-1")).toEqual([
@@ -69,12 +76,53 @@ describe("getUserBooks", () => {
         commentFont: "caveat",
         status: "reading",
         quote: "Andábamos sin buscarnos.",
+        createdAt: "2026-11-15T10:00:00+00:00",
+        updatedAt: "2026-11-18T09:30:00+00:00",
       },
     ]);
-    expect(query).toEqual({ table: "user_books", user: "user-1", order: "created_at" });
+    expect(query).toEqual({ table: "user_books", user: "user-1", order: ["shelf_order", "created_at"] });
   });
 
   test("si la lectura falla, devuelve una estantería vacía", async () => {
     expect(await getUserBooks(client({ data: null, error: { message: "boom" } }).supabase, "user-1")).toEqual([]);
+  });
+});
+
+describe("arrangeBooks", () => {
+  // En orden personalizado: b1, b2, b3, b4.
+  const book = (id: string, genre: string, createdAt: string, updatedAt: string) => ({ id, genre, createdAt, updatedAt }) as ShelfBook;
+  const books = [
+    book("b1", "Novela", "2026-11-03T00:00:00+00:00", "2026-11-05T00:00:00+00:00"),
+    book("b2", "Poesía", "2026-11-01T00:00:00+00:00", "2026-11-09T00:00:00+00:00"),
+    book("b3", "Novela", "2026-11-04T00:00:00+00:00", "2026-11-04T00:00:00+00:00"),
+    book("b4", "Novela", "2026-11-02T00:00:00+00:00", "2026-11-07T00:00:00+00:00"),
+  ];
+  const ids = (list: ShelfBook[]) => list.map(({ id }) => id);
+
+  test("ordena por el orden personalizado, la fecha de creación o la de actualización", () => {
+    expect(ids(arrangeBooks(books, "custom", null))).toEqual(["b1", "b2", "b3", "b4"]);
+    expect(ids(arrangeBooks(books, "oldest", null))).toEqual(["b2", "b4", "b1", "b3"]);
+    expect(ids(arrangeBooks(books, "newest", null))).toEqual(["b3", "b1", "b4", "b2"]);
+    expect(ids(arrangeBooks(books, "updated", null))).toEqual(["b2", "b4", "b1", "b3"]);
+    // No cambia la lista original.
+    expect(ids(books)).toEqual(["b1", "b2", "b3", "b4"]);
+  });
+
+  test("con un género, deja solo sus libros en el orden elegido", () => {
+    expect(ids(arrangeBooks(books, "custom", "Novela"))).toEqual(["b1", "b3", "b4"]);
+    expect(ids(arrangeBooks(books, "oldest", "Novela"))).toEqual(["b4", "b1", "b3"]);
+    expect(arrangeBooks(books, "custom", "Terror")).toEqual([]);
+  });
+
+  test("a igual fecha mantiene el orden personalizado", () => {
+    const same = [book("b1", "Novela", "2026-11-01T00:00:00+00:00", "x"), book("b2", "Novela", "2026-11-01T00:00:00+00:00", "x")];
+    expect(ids(arrangeBooks(same, "newest", null))).toEqual(["b1", "b2"]);
+  });
+});
+
+describe("bookGenres", () => {
+  test("los géneros de los libros, sin repetir y en orden alfabético", () => {
+    const books = ["Poesía", "Novela", "Ensayo", "Novela", "Ciencia ficción"].map((genre) => ({ genre }) as ShelfBook);
+    expect(bookGenres(books)).toEqual(["Ciencia ficción", "Ensayo", "Novela", "Poesía"]);
   });
 });

@@ -15,10 +15,14 @@ import {
 import { PaintingFrame, type FrameShape } from "@/components/atoms/PaintingFrame";
 import { PaperBag, type TakenBook } from "@/components/atoms/PaperBag";
 import { SideTable } from "@/components/atoms/SideTable";
+import { ShelfChalkboard } from "@/components/molecules/ShelfChalkboard";
+import { flushSync } from "react-dom";
 import { BookCreator } from "@/components/organisms/BookCreator";
-import { OpenShelfBook } from "@/components/organisms/Bookshelf";
+import { OpenShelfBook, ShelfView } from "@/components/organisms/Bookshelf";
+import { canAnimate } from "@/components/organisms/BookStage";
 import { BookViewer, type ViewedBook } from "@/components/organisms/BookViewer";
 import { PaintingMarket } from "@/components/organisms/PaintingMarket";
+import type { ShelfSort } from "@/lib/books";
 import { PAINTING_FRAMES, type PaintingImages } from "@/lib/paintings";
 import { useHorizontalSwipe } from "@/lib/use-horizontal-swipe";
 
@@ -32,14 +36,27 @@ const BOOKSHELF = 1;
 // Distancia mínima (px) del gesto para cambiar de panel; menos que esto es un toque o un temblor.
 const SWIPE = 40;
 const WIDE = "(min-width: 80rem)";
+// Desde xl y con alto de sobra (la columna de la bolsa mide al menos ~44rem) la pizarra cuelga arriba, sobre los cuadros.
+// Si no, va detrás de la bolsa: los cuadros tienen prioridad y nada los tapa ni los achica (ver AGENTS.md).
+const ROOMY = "(min-width: 80rem) and (min-height: 55rem)";
 const FRAME_NAME = Object.fromEntries(PAINTING_FRAMES.map(({ shape, name }) => [shape, name.toLowerCase()])) as Record<FrameShape, string>;
 
-// Desde xl se ven los tres paneles a la vez; por debajo, solo el del carrusel.
-function subscribeWide(onChange: () => void) {
-  const query = window.matchMedia(WIDE);
+const subscribeTo = (media: string) => (onChange: () => void) => {
+  const query = window.matchMedia(media);
   query.addEventListener("change", onChange);
   return () => query.removeEventListener("change", onChange);
-}
+};
+// Desde xl se ven los tres paneles a la vez; por debajo, solo el del carrusel.
+const subscribeWide = subscribeTo(WIDE);
+const subscribeRoomy = subscribeTo(ROOMY);
+
+// Al pasar el mouse la bolsa se comprime un poco desde la base (que está en el suelo) y se queda así mientras dure el hover.
+const BAG_HOVER = "origin-bottom transition-transform duration-300 ease-out hover:scale-x-[1.04] hover:scale-y-[0.9] motion-reduce:transition-none";
+// Lo que asoma de la pizarra o de la bolsa cuando está detrás de la otra: 2.75rem (44 px, el área táctil mínima).
+const PEEK = "2.75rem";
+// Al pasar al frente, la pizarra sale hacia la izquierda y la bolsa hacia la derecha (un poco hacia arriba y ladeadas).
+const PULLED = { board: "translate(-14%, -10%) rotate(-4deg)", bag: "translate(14%, -10%) rotate(4deg)" };
+const NUDGED = { board: "translateX(-6%)", bag: "translateX(6%)" };
 
 // Un cuadro de la pared y su tamaño: "width" multiplica su ancho respecto a la columna y "grow" es su parte del alto
 // disponible frente al otro cuadro.
@@ -86,13 +103,20 @@ function Paintings({
 }
 
 // La habitación de la página de inicio: bolsa | estantería | mesa, con dos cuadros sobre la bolsa y dos sobre la mesa.
+// La pizarra con el orden y el filtro por género de la estantería cuelga sobre los cuadros de la bolsa si hay alto de sobra
+// (ROOMY); si no, va detrás de la bolsa, asomando por la izquierda: un clic en la que está atrás la pasa al frente.
 // - Desde xl hay espacio a los lados: la bolsa y la mesa van junto a la estantería, apoyadas en el borde de abajo,
 //   y sus columnas ocupan todo el alto para colgar los cuadros encima.
 // - Por debajo de xl es un carrusel como el de fotos: se ve un panel a la vez y un gesto (dedo o arrastre con el mouse)
 //   pasa al siguiente de golpe. Con mouse también hay flechas a los lados, y con teclado, las flechas del teclado.
 // paintings: URL de la imagen de cada cuadro del usuario; los cuadros sin imagen muestran el lienzo vacío.
-export function RoomScene({ children, paintings = {} }: { children: ReactNode; paintings?: PaintingImages }) {
+// genres: los géneros de los libros del usuario, para filtrar la estantería.
+export function RoomScene({ children, paintings = {}, genres = [] }: { children: ReactNode; paintings?: PaintingImages; genres?: string[] }) {
   const [index, setIndex] = useState(BOOKSHELF);
+  const [sort, setSort] = useState<ShelfSort>("custom");
+  const [chosenGenre, setGenre] = useState<string | null>(null);
+  // Si ya no queda ningún libro del género elegido, se ven todos.
+  const genre = chosenGenre !== null && genres.includes(chosenGenre) ? chosenGenre : null;
   const [market, setMarket] = useState<FrameShape | null>(null);
   // Libro que salió de la bolsa: abre la creación de un libro.
   const [newBook, setNewBook] = useState<TakenBook | null>(null);
@@ -105,6 +129,34 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
   // El último gesto fue un deslizamiento: el clic que lo sigue no debe abrir el mercado ni sacar un libro.
   const swiped = useRef(false);
   const wide = useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches, () => false);
+  const roomy = useSyncExternalStore(subscribeRoomy, () => window.matchMedia(ROOMY).matches, () => false);
+  // Cuál va adelante cuando la pizarra está detrás de la bolsa.
+  const [front, setFront] = useState<"bag" | "board">("bag");
+  const boardRef = useRef<HTMLDivElement>(null);
+  const bagRef = useRef<HTMLDivElement>(null);
+  const shuffling = useRef(false);
+
+  // Como al barajar: la de atrás sale de detrás de la otra hacia su lado, cambian de capa y entra por encima a su lugar;
+  // la otra se corre un poco hacia el lado contrario y vuelve.
+  async function bringToFront(next: "bag" | "board") {
+    if (!canAnimate()) return setFront(next);
+    if (shuffling.current) return;
+    shuffling.current = true;
+    const other = next === "board" ? "bag" : "board";
+    const [incoming, outgoing] = next === "board" ? [boardRef.current!, bagRef.current!] : [bagRef.current!, boardRef.current!];
+    const out = { duration: 180, easing: "ease-in", fill: "forwards" } as const;
+    await Promise.all([
+      incoming.animate({ transform: ["none", PULLED[next]] }, out).finished,
+      outgoing.animate({ transform: ["none", NUDGED[other]] }, out).finished,
+    ]).catch(() => {});
+    flushSync(() => setFront(next));
+    for (const element of [incoming, outgoing]) element.getAnimations().forEach((animation) => animation.cancel());
+    const back = { duration: 220, easing: "ease-out" } as const;
+    incoming.animate({ transform: [PULLED[next], "none"] }, back);
+    outgoing.animate({ transform: [NUDGED[other], "none"] }, back);
+    shuffling.current = false;
+  }
+  const board = { sort, onSortChange: setSort, genre, onGenreChange: setGenre, genres };
 
   const go = (next: number) => setIndex(Math.max(0, Math.min(PANELS.length - 1, next)));
 
@@ -170,6 +222,7 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
             inert={!wide && index !== 0}
             className={`flex w-full shrink-0 flex-col items-center justify-end [container-type:size] xl:absolute xl:inset-y-0 xl:right-full xl:mr-(--side-gap) ${SIDE_WIDTH}`}
           >
+            {roomy && <ShelfChalkboard {...board} className="w-full shrink-0" />}
             <Paintings
               frames={[
                 { shape: "oval", width: 1.1, grow: 1.1 },
@@ -179,17 +232,53 @@ export function RoomScene({ children, paintings = {} }: { children: ReactNode; p
               images={paintings}
               onChoose={setMarket}
             />
-            {/* Al pasar el mouse se comprime un poco desde la base (que está en el suelo) y se queda así mientras dure el hover.
-                Por debajo de xl ocupa a lo sumo la mitad del alto del panel (cqh), para dejar lugar a los cuadros. */}
-            <PaperBag
-              className="w-[min(16rem,80%,50cqh)] shrink-0 [@container(max-height:20rem)]:w-[min(16rem,80%,111cqh)] xl:[@container(max-height:20rem)]:w-full origin-bottom transition-transform duration-300 ease-out hover:scale-x-[1.04] hover:scale-y-[0.9] motion-reduce:transition-none xl:w-full"
-              taken={newBook !== null}
-              onTakeBook={setNewBook}
-            />
+            {roomy ? (
+              <PaperBag className={`w-full shrink-0 ${BAG_HOVER}`} taken={newBook !== null} onTakeBook={setNewBook} />
+            ) : (
+              // La pizarra detrás de la bolsa: mide lo mismo que la bolsa (si no le cabe el contenido, se desplaza adentro)
+              // y queda corrida PEEK a la izquierda. Así ocupan casi lo mismo que la bolsa sola y los cuadros no cambian.
+              // La bolsa ocupa a lo sumo la mitad del alto del panel (cqh), como antes, menos lo que asoma la pizarra.
+              <div className="relative shrink-0" style={{ paddingLeft: PEEK }}>
+                <ShelfChalkboard
+                  {...board}
+                  ref={boardRef}
+                  inert={front !== "board"}
+                  className={`absolute inset-y-0 left-0 ${front === "board" ? "z-30" : "z-0"}`}
+                  style={{ right: PEEK }}
+                />
+                {/* La que está atrás no se usa: un clic en lo que asoma de ella solo la pasa al frente. */}
+                {front === "bag" && (
+                  <button
+                    type="button"
+                    aria-label="Mostrar la pizarra para ordenar y filtrar la estantería"
+                    onClick={() => bringToFront("board")}
+                    className="absolute inset-y-0 left-0 z-10 cursor-pointer rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                    style={{ right: PEEK }}
+                  />
+                )}
+                {/* Solo el dibujo de la bolsa recibe el clic: lo transparente (entre las asas) deja pasar el clic a la pizarra. */}
+                <div ref={bagRef} inert={front !== "bag"} className={`pointer-events-none relative ${front === "bag" ? "z-20" : "z-0"}`}>
+                  <PaperBag
+                    className={`w-[min(16rem,calc(80cqw-2.75rem),50cqh)] [&_svg_*]:pointer-events-auto [@container(max-height:20rem)]:w-[min(16rem,calc(80cqw-2.75rem),111cqh)] xl:w-[calc(100cqw-2.75rem)] xl:[@container(max-height:20rem)]:w-[calc(100cqw-2.75rem)] ${BAG_HOVER}`}
+                    taken={newBook !== null}
+                    onTakeBook={setNewBook}
+                  />
+                </div>
+                {front === "board" && (
+                  <button
+                    type="button"
+                    aria-label="Mostrar la bolsa para agregar un libro"
+                    onClick={() => bringToFront("bag")}
+                    className="absolute inset-y-0 right-0 z-20 cursor-pointer rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                    style={{ left: PEEK }}
+                  />
+                )}
+              </div>
+            )}
           </div>
           {/* Con mouse, margen a los lados para que las flechas (44 px) no tapen los postes ni los libros. */}
           <div inert={!wide && index !== BOOKSHELF} className="flex w-full shrink-0 flex-col pointer-fine:px-12 xl:pointer-fine:px-0">
-            {children}
+            <ShelfView value={{ sort, genre }}>{children}</ShelfView>
           </div>
           <div
             inert={!wide && index !== 2}

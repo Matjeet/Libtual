@@ -75,7 +75,36 @@ export type ShelfBook = {
   status: string;
   // Cita del libro; vacía si no la escribió.
   quote: string;
+  // Fechas ISO de cuando se agregó y de su último cambio (moverlo de lugar no cuenta).
+  createdAt: string;
+  updatedAt: string;
 };
+
+// Formas de ordenar la estantería. Personalizado es el orden en que el usuario acomodó sus libros (shelf_order).
+export const SHELF_SORTS = [
+  { value: "custom", label: "Personalizado" },
+  { value: "oldest", label: "Más antiguos" },
+  { value: "newest", label: "Más nuevos" },
+  { value: "updated", label: "Recién actualizados" },
+] as const;
+export type ShelfSort = (typeof SHELF_SORTS)[number]["value"];
+
+const time = (date: string) => Date.parse(date);
+const COMPARE: Record<Exclude<ShelfSort, "custom">, (a: ShelfBook, b: ShelfBook) => number> = {
+  oldest: (a, b) => time(a.createdAt) - time(b.createdAt),
+  newest: (a, b) => time(b.createdAt) - time(a.createdAt),
+  updated: (a, b) => time(b.updatedAt) - time(a.updatedAt),
+};
+
+// Los libros que se ven en la estantería: solo los del género elegido (null = todos), en el orden elegido.
+// books llega en el orden personalizado; a igual fecha se mantiene ese orden (sort es estable).
+export function arrangeBooks(books: ShelfBook[], sort: ShelfSort, genre: string | null) {
+  const shown = genre === null ? books : books.filter((book) => book.genre === genre);
+  return sort === "custom" ? shown : shown.toSorted(COMPARE[sort]);
+}
+
+// Géneros de los libros del usuario, sin repetir y en orden alfabético.
+export const bookGenres = (books: ShelfBook[]) => [...new Set(books.map(({ genre }) => genre))].sort((a, b) => a.localeCompare(b, "es"));
 
 type BookRow = {
   id: string;
@@ -91,14 +120,17 @@ type BookRow = {
   comment_font: string;
   status: string;
   quote: string;
+  created_at: string;
+  updated_at: string;
 };
 
-// Libros del usuario en el orden en que los agregó. Si la lectura falla, la estantería queda vacía en vez de romper la página.
+// Libros del usuario en el orden de su estantería (shelf_order); a igual orden, el que se agregó primero. Si la lectura falla, la estantería queda vacía en vez de romper la página.
 export async function getUserBooks(supabase: Supabase, userId: string): Promise<ShelfBook[]> {
   const { data, error } = await supabase
     .from("user_books")
-    .select("id, title, category, cover_color, font_color, title_font, author, year, genre, comment, comment_font, status, quote")
+    .select("id, title, category, cover_color, font_color, title_font, author, year, genre, comment, comment_font, status, quote, created_at, updated_at")
     .eq("user_id", userId)
+    .order("shelf_order")
     .order("created_at");
   if (error || !data) return [];
   return (data as BookRow[]).map((row) => ({
@@ -115,5 +147,7 @@ export async function getUserBooks(supabase: Supabase, userId: string): Promise<
     commentFont: row.comment_font,
     status: row.status,
     quote: row.quote,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }));
 }
