@@ -269,11 +269,15 @@ export async function shelfToBook({ fly, inner, flipper, pages }: BookParts, spi
   for (const animation of [center, ...writing]) animation.cancel();
 }
 
-// El lomo de un libro en la estantería. Lo busca unos instantes por si la página todavía se está refrescando.
+// El lomo de un libro en la estantería. Lo busca unos instantes por si la página todavía se está refrescando. Si quedó en
+// un piso que no se ve, la estantería se desplaza hasta él.
 export async function findShelvedBook(id: string) {
   for (let attempt = 0; attempt < 20; attempt++) {
     const spine = document.querySelector<HTMLElement>(`[data-book-id="${id}"] > *`);
-    if (spine) return spine;
+    if (spine) {
+      spine.scrollIntoView({ block: "nearest" });
+      return spine;
+    }
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   return null;
