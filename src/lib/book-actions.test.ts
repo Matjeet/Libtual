@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { deleteBook, moveBook, saveBook, type NewBook } from "./book-actions";
+import { deleteBook, moveBook, saveBook, updateBook, type NewBook } from "./book-actions";
 
 type Op = [string, ...unknown[]];
 
@@ -226,6 +226,41 @@ describe("deleteBook", () => {
     expect(await deleteBook("")).toEqual({ error: "No pudimos sacar el libro." });
     db.userId = undefined;
     expect(await deleteBook("book-1")).toEqual({ error: "Tu sesión terminó. Vuelve a ingresar." });
+    expect(db.queries).toEqual([]);
+  });
+});
+
+describe("updateBook", () => {
+  test("actualiza solo los campos que cambiaron, sin espacios a los lados, y refresca la página", async () => {
+    expect(await updateBook("book-1", { title: "  Rayuela ", comment: " Un juego. " })).toEqual({});
+    expect(db.queries[0].ops).toEqual([
+      ["update", { title: "Rayuela", comment: " Un juego. " }],
+      ["eq", "id", "book-1"],
+      ["eq", "user_id", "user-1"],
+      ["select", "id"],
+    ]);
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  test("si cambian las páginas, cambia también la categoría; los colores y fuentes van a sus columnas", async () => {
+    await updateBook("book-1", { pages: 150, coverColor: "#112233", titleFont: "lora" });
+    expect(op("update")).toEqual(["update", { pages: 150, category: "small", cover_color: "#112233", title_font: "lora" }]);
+  });
+
+  test("rechaza campos inválidos, desconocidos o ningún cambio sin tocar la base de datos", async () => {
+    const invalid = [{ title: " " }, { pages: 0 }, { status: "lost" }, { commentFont: "creepster" }, { user_id: "otro" }, {}];
+    for (const changes of invalid) expect(await updateBook("book-1", changes as Partial<NewBook>)).toEqual({ error: "Revisa los datos del libro." });
+    expect(await updateBook("", { title: "Rayuela" })).toEqual({ error: "Revisa los datos del libro." });
+    expect(db.queries).toEqual([]);
+  });
+
+  test("si el libro no es del usuario o falla, avisa y no refresca; sin sesión no toca nada", async () => {
+    db.updated = { data: [], error: null };
+    expect(await updateBook("ajeno", { title: "Rayuela" })).toEqual({ error: "No pudimos actualizar tu libro. Intenta de nuevo." });
+    expect(refresh).not.toHaveBeenCalled();
+    db.queries = [];
+    db.userId = undefined;
+    expect(await updateBook("book-1", { title: "Rayuela" })).toEqual({ error: "Tu sesión terminó. Vuelve a ingresar." });
     expect(db.queries).toEqual([]);
   });
 });

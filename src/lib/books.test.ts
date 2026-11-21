@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, test } from "vitest";
-import { arrangeBooks, bookCategory, bookGenres, bookmarkColor, getUserBooks, type ShelfBook } from "./books";
+import { arrangeBooks, bookCategory, bookFields, bookGenres, bookmarkColor, changedFields, getUserBooks, type ShelfBook } from "./books";
 
 describe("bookCategory", () => {
   test("clasifica por páginas: corto hasta 200, mediano hasta 400, largo hasta 600 y extra largo desde 601", () => {
@@ -57,6 +57,7 @@ describe("getUserBooks", () => {
       comment_font: "caveat",
       status: "reading",
       quote: "Andábamos sin buscarnos.",
+      pages: 600,
       created_at: "2026-11-15T10:00:00+00:00",
       updated_at: "2026-11-18T09:30:00+00:00",
     };
@@ -76,6 +77,7 @@ describe("getUserBooks", () => {
         commentFont: "caveat",
         status: "reading",
         quote: "Andábamos sin buscarnos.",
+        pages: 600,
         createdAt: "2026-11-15T10:00:00+00:00",
         updatedAt: "2026-11-18T09:30:00+00:00",
       },
@@ -124,5 +126,39 @@ describe("bookGenres", () => {
   test("los géneros de los libros, sin repetir y en orden alfabético", () => {
     const books = ["Poesía", "Novela", "Ensayo", "Novela", "Ciencia ficción"].map((genre) => ({ genre }) as ShelfBook);
     expect(bookGenres(books)).toEqual(["Ciencia ficción", "Ensayo", "Novela", "Poesía"]);
+  });
+});
+
+describe("changedFields", () => {
+  const saved = bookFields({
+    id: "b1",
+    title: "Rayuela",
+    category: "large",
+    coverColor: "#2f7a96",
+    fontColor: "#faf0d1",
+    titleFont: "lora",
+    author: "Julio Cortázar",
+    year: 1963,
+    genre: "Novela",
+    comment: "Un juego.",
+    commentFont: "caveat",
+    status: "reading",
+    quote: "",
+    pages: 600,
+    createdAt: "",
+    updatedAt: "",
+  });
+
+  test("sin cambios no devuelve nada; espacios a los lados del título o mayúsculas en un color no cuentan", () => {
+    expect(changedFields(saved, { ...saved })).toEqual({});
+    expect(changedFields(saved, { ...saved, title: " Rayuela  ", coverColor: "#2F7A96" })).toEqual({});
+  });
+
+  test("devuelve solo lo que cambió, también mayúsculas del comentario", () => {
+    expect(changedFields(saved, { ...saved, pages: 601, status: "finished", comment: "Un Juego." })).toEqual({
+      pages: 601,
+      status: "finished",
+      comment: "Un Juego.",
+    });
   });
 });
