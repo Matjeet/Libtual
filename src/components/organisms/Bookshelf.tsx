@@ -210,15 +210,16 @@ export function Bookshelf({ books = [] }: { books?: ShelfBook[] }) {
   function lift() {
     dragged.current = true;
     trash?.setShown(true);
+    // Con mouse, los movimientos siguen llegando aunque el puntero salga de la ventana. Recién al levantar el libro: con la
+    // captura puesta, el clic va a la lista y no al libro (un clic sin arrastrar no lo abriría). Va en la lista y no en el
+    // libro: al reordenar, React mueve los <li> en el DOM y el navegador le quita la captura al elemento que se mueve.
+    listRef.current!.setPointerCapture?.(press.current!.pointerId);
     setDrag({ book: press.current!.book, order: arranged, rect: slotRect(press.current!.button) });
   }
 
   function onPointerDown(book: ShelfBook, event: PointerEvent<HTMLButtonElement>) {
     if (!movable || !event.isPrimary || event.button !== 0 || drag) return;
     dragged.current = false;
-    // Con mouse, los movimientos siguen llegando aunque el puntero salga de la ventana. La captura va en la lista y no en
-    // el libro: al reordenar, React mueve los <li> en el DOM y el navegador le quita la captura al elemento que se mueve.
-    listRef.current!.setPointerCapture?.(event.pointerId);
     const timer = event.pointerType === "mouse" ? undefined : setTimeout(lift, HOLD_MS);
     press.current = { book, button: event.currentTarget, pointerId: event.pointerId, x: event.clientX, y: event.clientY, timer };
   }

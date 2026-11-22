@@ -1,3 +1,4 @@
+import type { NewBook } from "@/lib/book-actions";
 import type { createClient } from "@/lib/supabase/server";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -75,6 +76,7 @@ export type ShelfBook = {
   status: string;
   // Cita del libro; vacía si no la escribió.
   quote: string;
+  pages: number;
   // Fechas ISO de cuando se agregó y de su último cambio (moverlo de lugar no cuenta).
   createdAt: string;
   updatedAt: string;
@@ -120,6 +122,7 @@ type BookRow = {
   comment_font: string;
   status: string;
   quote: string;
+  pages: number;
   created_at: string;
   updated_at: string;
 };
@@ -128,7 +131,7 @@ type BookRow = {
 export async function getUserBooks(supabase: Supabase, userId: string): Promise<ShelfBook[]> {
   const { data, error } = await supabase
     .from("user_books")
-    .select("id, title, category, cover_color, font_color, title_font, author, year, genre, comment, comment_font, status, quote, created_at, updated_at")
+    .select("id, title, category, cover_color, font_color, title_font, author, year, genre, comment, comment_font, status, quote, pages, created_at, updated_at")
     .eq("user_id", userId)
     .order("shelf_order")
     .order("created_at");
@@ -147,7 +150,38 @@ export async function getUserBooks(supabase: Supabase, userId: string): Promise<
     commentFont: row.comment_font,
     status: row.status,
     quote: row.quote,
+    pages: row.pages,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }));
+}
+
+// Los datos de un libro de la estantería, como los escribe el formulario.
+export const bookFields = (book: ShelfBook): NewBook => ({
+  title: book.title,
+  author: book.author,
+  genre: book.genre,
+  year: book.year,
+  pages: book.pages,
+  coverColor: book.coverColor,
+  fontColor: book.fontColor,
+  titleFont: book.titleFont,
+  commentFont: book.commentFont,
+  status: book.status,
+  comment: book.comment,
+  quote: book.quote,
+});
+
+// Solo los campos que cambiaron. Los textos que se guardan sin espacios a los lados se comparan así, y los colores sin
+// importar mayúsculas.
+const TRIMMED = new Set<keyof NewBook>(["title", "author", "genre", "quote"]);
+const COLORS = new Set<keyof NewBook>(["coverColor", "fontColor"]);
+export function changedFields(saved: NewBook, next: NewBook): Partial<NewBook> {
+  const same = (key: keyof NewBook) => {
+    const [a, b] = [saved[key], next[key]];
+    if (typeof a !== "string" || typeof b !== "string") return a === b;
+    if (TRIMMED.has(key)) return a.trim() === b.trim();
+    return COLORS.has(key) ? a.toLowerCase() === b.toLowerCase() : a === b;
+  };
+  return Object.fromEntries((Object.keys(next) as (keyof NewBook)[]).filter((key) => !same(key)).map((key) => [key, next[key]]));
 }

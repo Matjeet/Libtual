@@ -26,6 +26,7 @@ export type NewBook = {
 export type SaveBookResult = { id?: string; error?: string };
 export type MoveBookResult = { error?: string };
 export type DeleteBookResult = { error?: string };
+export type UpdateBookResult = { error?: string };
 
 const HEX = /^#[0-9a-f]{6}$/i;
 // Mismos límites que la tabla user_books. Se cuentan caracteres (code points), como char_length en Postgres.
@@ -37,24 +38,24 @@ const isId = (value: unknown): value is string => typeof value === "string" && v
 const isFont = (value: unknown, forComment: boolean) =>
   BOOK_FONTS.some((font) => font.value === value && !(forComment && "titleOnly" in font));
 
-function isValid(book: NewBook) {
-  return (
-    isText(book.title, 200) &&
-    isText(book.author, 200) &&
-    isText(book.genre, 100) &&
-    isInt(book.year, -3000, 2100) &&
-    isInt(book.pages, 1, 100000) &&
-    isColor(book.coverColor) &&
-    isColor(book.fontColor) &&
-    isFont(book.titleFont, false) &&
-    isFont(book.commentFont, true) &&
-    BOOK_STATUSES.some(({ value }) => value === book.status) &&
-    typeof book.comment === "string" &&
-    length(book.comment) <= 4000 &&
-    typeof book.quote === "string" &&
-    length(book.quote) <= 300
-  );
-}
+// Cada campo, su regla y su columna en user_books. Los textos con trim se guardan sin espacios a los lados.
+const FIELDS: { [K in keyof NewBook]: { valid: (value: unknown) => boolean; column: string; trim?: true } } = {
+  title: { valid: (value) => isText(value, 200), column: "title", trim: true },
+  author: { valid: (value) => isText(value, 200), column: "author", trim: true },
+  genre: { valid: (value) => isText(value, 100), column: "genre", trim: true },
+  year: { valid: (value) => isInt(value, -3000, 2100), column: "year" },
+  pages: { valid: (value) => isInt(value, 1, 100000), column: "pages" },
+  coverColor: { valid: isColor, column: "cover_color" },
+  fontColor: { valid: isColor, column: "font_color" },
+  titleFont: { valid: (value) => isFont(value, false), column: "title_font" },
+  commentFont: { valid: (value) => isFont(value, true), column: "comment_font" },
+  status: { valid: (value) => BOOK_STATUSES.some((status) => status.value === value), column: "status" },
+  comment: { valid: (value) => typeof value === "string" && length(value) <= 4000, column: "comment" },
+  quote: { valid: (value) => typeof value === "string" && length(value) <= 300, column: "quote", trim: true },
+};
+const KEYS = Object.keys(FIELDS) as (keyof NewBook)[];
+
+const isValid = (book: NewBook) => KEYS.every((key) => FIELDS[key].valid(book[key]));
 
 // Guarda el libro en la estantería del usuario (la categoría sale de las páginas) y refresca la página para que aparezca.
 // Queda último en la estantería: su índice fraccionado (shelf_order) va después del más alto.
@@ -160,6 +161,35 @@ export async function deleteBook(bookId: string): Promise<DeleteBookResult> {
   // select: confirma que se borró un libro del usuario (si no es suyo, no se borra ninguna fila).
   const { data, error } = await supabase.from("user_books").delete().eq("id", bookId).eq("user_id", userId).select("id");
   if (error || !data?.length) return { error: "No pudimos sacar el libro. Intenta de nuevo." };
+  refresh();
+  return {};
+}
+
+// Actualiza solo los campos que cambiaron (changes, comparados en el cliente con lo guardado). Se validan igual que al
+// guardar; si cambian las páginas, cambia también la categoría. Solo puede actualizar sus propios libros.
+export async function updateBook(bookId: string, changes: Partial<NewBook>): Promise<UpdateBookResult> {
+  const keys = changes && typeof changes === "object" ? Object.keys(changes) : [];
+  // Viene del cliente: solo campos conocidos y válidos, y al menos uno.
+  if (!isId(bookId) || keys.length === 0 || !keys.every((key) => key in FIELDS && FIELDS[key as keyof NewBook].valid(changes[key as keyof NewBook]))) {
+    return { error: "Revisa los datos del libro." };
+  }
+
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getClaims();
+  const userId = auth?.claims?.sub;
+  if (!userId) return { error: "Tu sesión terminó. Vuelve a ingresar." };
+
+  const row: Record<string, unknown> = {};
+  for (const key of keys as (keyof NewBook)[]) {
+    const { column, trim } = FIELDS[key];
+    const value = changes[key];
+    row[column] = trim ? String(value).trim() : value;
+  }
+  if (changes.pages !== undefined) row.category = bookCategory(changes.pages);
+
+  // select: confirma que se actualizó un libro del usuario (si no es suyo, no se actualiza ninguna fila).
+  const { data, error } = await supabase.from("user_books").update(row).eq("id", bookId).eq("user_id", userId).select("id");
+  if (error || !data?.length) return { error: "No pudimos actualizar tu libro. Intenta de nuevo." };
   refresh();
   return {};
 }

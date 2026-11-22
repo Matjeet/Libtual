@@ -11,7 +11,7 @@ vi.mock("@/lib/book-actions", () => ({ moveBook, deleteBook }));
 const titles = () => screen.getAllByRole("listitem").map((li) => li.textContent);
 const book = (id: string, title: string) => ({ id, title, category: "medium" as const, coverColor: "#2f7a96", fontColor: "#faf0d1", titleFont: "lora", ...DETAILS });
 
-const DETAILS = { author: "Julio Cortázar", year: 1963, genre: "Novela", comment: "Un juego.", commentFont: "lora", status: "pending", quote: "", createdAt: "2026-11-15T10:00:00+00:00", updatedAt: "2026-11-15T10:00:00+00:00" };
+const DETAILS = { author: "Julio Cortázar", year: 1963, genre: "Novela", comment: "Un juego.", commentFont: "lora", status: "pending", quote: "", pages: 300, createdAt: "2026-11-15T10:00:00+00:00", updatedAt: "2026-11-15T10:00:00+00:00" };
 
 describe("Bookshelf", () => {
   test("tiene los pisos que caben y, si los libros llenan más, uno por cada fila de libros, con scroll sin barra", () => {
