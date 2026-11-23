@@ -115,8 +115,17 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
       setEditing(direction === "forward");
       setTurning(direction);
     });
-    const turns = ["rotateY(0deg)", "rotateY(-180deg)"];
-    await leafRef.current!.animate({ transform: direction === "forward" ? turns : turns.toReversed() }, { duration: 700, easing: "ease-in-out" })
+    // Perspectiva propia: al girar, la hoja dibujada crece desde el centro del libro hasta un factor de hoja/(perspectiva −
+    // hoja). Se elige para que no pase del borde de la pantalla (menos 8 px) ni arriba ni abajo; como mínimo, 3,3 veces el
+    // ancho del libro (el giro de siempre, que en pantallas grandes se salía de la pantalla).
+    const box = innerRef.current!.getBoundingClientRect();
+    const sheet = leafRef.current!.querySelector("path")!.getBoundingClientRect();
+    const mid = (box.top + box.bottom) / 2;
+    const grow = Math.min((sheet.top - 8) / (mid - sheet.top), (innerHeight - 8 - sheet.bottom) / (sheet.bottom - mid));
+    const depth = `perspective(${Math.max(box.width * 3.3, (box.width / 2) * (1 + 1 / Math.max(grow, 0.01)))}px)`;
+    const turns = [`${depth} rotateY(0deg)`, `${depth} rotateY(-180deg)`];
+    // fill: forwards: hasta que se quita la hoja no vuelve a su lugar de partida (se veía un cuadro con lo anterior).
+    await leafRef.current!.animate({ transform: direction === "forward" ? turns : turns.toReversed() }, { duration: 700, easing: "ease-in-out", fill: "forwards" })
       .finished.catch(() => {});
     setTurning(null);
     busy.current = false;
@@ -265,15 +274,17 @@ export function BookViewer({ viewing, onClose }: BookViewerProps) {
               </div>
               )}
               {/* La hoja que gira al pasar la página: por delante, la de la derecha; por detrás, la de la izquierda. */}
+              {/* El contenedor no se transforma: así la hoja no usa la perspectiva del libro, sino la suya (en turn). */}
               {turning && (
-                <div
-                  ref={leafRef}
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-y-0 right-0 w-1/2 origin-left transform-3d"
-                  style={{ transform: turning === "forward" ? "rotateY(0deg)" : "rotateY(-180deg)" }}
-                >
-                  <BookSheet className="absolute inset-0 size-full backface-hidden" />
-                  <BookSheet mirrored className="absolute inset-0 size-full backface-hidden [transform:rotateY(180deg)]" />
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+                  <div
+                    ref={leafRef}
+                    className="absolute inset-y-0 right-0 w-1/2 origin-left transform-3d"
+                    style={{ transform: turning === "forward" ? "rotateY(0deg)" : "rotateY(-180deg)" }}
+                  >
+                    <BookSheet className="absolute inset-0 size-full backface-hidden" />
+                    <BookSheet mirrored className="absolute inset-0 size-full backface-hidden [transform:rotateY(180deg)]" />
+                  </div>
                 </div>
               )}
             </BookFrame>
