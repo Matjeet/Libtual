@@ -259,8 +259,9 @@ body {
   from {
     clip-path: inset(0 100% 0 0);
   }
+  /* Margen a la derecha: el trazo de la "r" cursiva sobresale de la caja de la palabra. */
   to {
-    clip-path: inset(0 0 0 0);
+    clip-path: inset(0 -0.5rem 0 0);
   }
 }
 
