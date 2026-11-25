@@ -9,7 +9,7 @@ import { bookGenres, getUserBooks } from "@/lib/books";
 import { getPaintingImages } from "@/lib/paintings";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Inicio | Libtual" };
+export const metadata: Metadata = { title: "Inicio" };
 
 export default function HomePage() {
   return (

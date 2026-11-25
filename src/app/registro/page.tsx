@@ -6,7 +6,10 @@ import { AuthTemplate } from "@/components/templates/AuthTemplate";
 import type { Country } from "@/lib/registration";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Registro | Libtual" };
+export const metadata: Metadata = {
+  title: "Registro",
+  description: "Crea tu cuenta en Libtual y arma tu librería virtual: guarda tus libros, marca qué estás leyendo y comparte tu opinión con otros lectores.",
+};
 
 export default function RegisterPage() {
   return (
