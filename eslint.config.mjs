@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Skills locales de HyperFrames (no versionadas).
+    ".agents/**",
   ]),
 ]);
 

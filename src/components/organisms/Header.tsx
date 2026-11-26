@@ -1,12 +1,19 @@
-import { Button } from "@/components/atoms/Button";
+import { Suspense } from "react";
 import { Logo } from "@/components/atoms/Logo";
+import { HeaderActions, HeaderActionsSkeleton } from "@/components/organisms/HeaderActions";
 
-export function Header() {
+// El botón "Ingresar" está oculto por defecto: solo lo muestran las páginas que lo indican (hoy `/` y `/registro`).
+// Con sesión iniciada se muestra el menú del perfil en su lugar.
+// relative z-20: el menú del perfil se posiciona respecto al header y queda por encima del contenido.
+// Desde 2xl, zoom agranda todo el header un 30 % (alto, logo, botones y menú), como el zoom del navegador.
+export function Header({ showSignIn = false }: { showSignIn?: boolean }) {
   return (
-    <header className="border-b border-foreground/10">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+    <header className="relative z-20 2xl:[zoom:1.3] border-b border-accent bg-header text-surface-foreground">
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-12">
         <Logo />
-        <Button variant="secondary">Iniciar sesión</Button>
+        <Suspense fallback={<HeaderActionsSkeleton showSignIn={showSignIn} />}>
+          <HeaderActions showSignIn={showSignIn} />
+        </Suspense>
       </div>
     </header>
   );

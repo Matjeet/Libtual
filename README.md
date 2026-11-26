@@ -14,6 +14,8 @@ npm run dev     # servidor de desarrollo en http://localhost:3000
 npm run build   # build de producción
 npm run start   # servir el build
 npm run lint    # ESLint
+npm test        # tests unitarios (Vitest + Testing Library)
+npm run test:watch  # tests en modo watch
 ```
 
 ## Estructura (Atomic Design)

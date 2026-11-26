@@ -1,0 +1,342 @@
+"use client";
+
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
+import { PaintingFrame, type FrameShape } from "@/components/atoms/PaintingFrame";
+import { PaperBag, type TakenBook } from "@/components/atoms/PaperBag";
+import { SideTable } from "@/components/atoms/SideTable";
+import { TrashCan } from "@/components/atoms/TrashCan";
+import { ShelfChalkboard } from "@/components/molecules/ShelfChalkboard";
+import { flushSync } from "react-dom";
+import { BookCreator } from "@/components/organisms/BookCreator";
+import { ABOVE_SHELF, BookTrash, OpenShelfBook, ShelfView } from "@/components/organisms/Bookshelf";
+import { canAnimate } from "@/components/organisms/BookStage";
+import { BookViewer, type ViewedBook } from "@/components/organisms/BookViewer";
+import { PaintingMarket } from "@/components/organisms/PaintingMarket";
+import type { ShelfSort } from "@/lib/books";
+import { PAINTING_FRAMES, type PaintingImages } from "@/lib/paintings";
+import { useHorizontalSwipe } from "@/lib/use-horizontal-swipe";
+
+// Desde xl (variables definidas en la escena):
+// --side-free: espacio libre al lado de la estantería, menos la separación y 1rem de margen con el borde de la pantalla.
+// --side-col: ancho de la columna de la bolsa y la mesa, ese espacio con un máximo de 13rem.
+// Desde 2xl la bolsa y la mesa (con su portafotos) miden un 30 % más, sin pasar del espacio libre.
+const SIDE_WIDTH = "xl:w-(--side-col) 2xl:w-[min(calc(var(--side-col)*1.3),var(--side-free))]";
+const PANELS = ["la bolsa", "la estantería", "la mesa"] as const;
+const BOOKSHELF = 1;
+// Distancia mínima (px) del gesto para cambiar de panel; menos que esto es un toque o un temblor.
+const SWIPE = 40;
+const WIDE = "(min-width: 80rem)";
+// Desde xl y con alto de sobra (la columna de la bolsa mide al menos ~44rem) la pizarra cuelga arriba, sobre los cuadros.
+// Si no, va detrás de la bolsa: los cuadros tienen prioridad y nada los tapa ni los achica (ver AGENTS.md).
+const ROOMY = "(min-width: 80rem) and (min-height: 55rem)";
+const FRAME_NAME = Object.fromEntries(PAINTING_FRAMES.map(({ shape, name }) => [shape, name.toLowerCase()])) as Record<FrameShape, string>;
+
+const subscribeTo = (media: string) => (onChange: () => void) => {
+  const query = window.matchMedia(media);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+// Desde xl se ven los tres paneles a la vez; por debajo, solo el del carrusel.
+const subscribeWide = subscribeTo(WIDE);
+const subscribeRoomy = subscribeTo(ROOMY);
+
+// Al pasar el mouse la bolsa se comprime un poco desde la base (que está en el suelo) y se queda así mientras dure el hover.
+const BAG_HOVER = "origin-bottom transition-transform duration-300 ease-out hover:scale-x-[1.04] hover:scale-y-[0.9] motion-reduce:transition-none";
+// Lo que asoma de la pizarra o de la bolsa cuando está detrás de la otra: 2.75rem (44 px, el área táctil mínima).
+const PEEK = "2.75rem";
+// Al pasar al frente, la pizarra sale hacia la izquierda y la bolsa hacia la derecha (un poco hacia arriba y ladeadas).
+const PULLED = { board: "translate(-14%, -10%) rotate(-4deg)", bag: "translate(14%, -10%) rotate(4deg)" };
+const NUDGED = { board: "translateX(-6%)", bag: "translateX(6%)" };
+
+// Un cuadro de la pared y su tamaño: "width" multiplica su ancho respecto a la columna y "grow" es su parte del alto
+// disponible frente al otro cuadro.
+type Painting = { shape: FrameShape; width: number; grow: number };
+
+// Dos cuadros colgados uno encima del otro, en el espacio libre sobre la bolsa o la mesa. Su SVG se escala sin
+// deformarse (proporción fija), centrado en su caja. Cada uno puede ser más ancho que la columna según su "width",
+// sin pasar del panel (100cqw) ni, desde xl, del espacio libre de la pared menos 10 px.
+// Desde xl los cuadros se centran en todo el espacio libre de la pared (--side-free, alineado al lado de la estantería),
+// así los grandes crecen hacia afuera. Del lado de la estantería dejan 10 px más que la separación normal (pr/pl-2.5).
+// Cada cuadro es un botón que abre el mercado de imágenes. Solo el marco dibujado recibe el clic (no la caja vacía
+// alrededor): el botón no captura eventos y las figuras del SVG sí. Un área invisible de 44 × 44 px centrada (after)
+// asegura un blanco táctil mínimo cuando el marco dibujado es más chico (pantallas bajas).
+function Paintings({
+  frames,
+  side,
+  images,
+  onChoose,
+}: {
+  frames: [Painting, Painting];
+  side: "left" | "right";
+  images: PaintingImages;
+  onChoose: (shape: FrameShape) => void;
+}) {
+  return (
+    // En paneles muy bajos (celular en horizontal) los cuadros serían diminutos: se ocultan y la bolsa o la mesa usan todo el alto.
+    <div
+      className={`flex min-h-0 w-full max-w-60 flex-1 flex-col items-center justify-center gap-4 py-4 xl:w-(--side-free) xl:max-w-none xl:gap-6 [@container(max-height:20rem)]:hidden ${side === "left" ? "xl:self-end xl:pr-2.5" : "xl:self-start xl:pl-2.5"}`}
+    >
+      {frames.map(({ shape, width, grow }) => (
+        <button
+          key={shape}
+          type="button"
+          aria-label={`Elegir la imagen del ${FRAME_NAME[shape]}`}
+          onClick={() => onChoose(shape)}
+          style={{ "--width": width, "--grow": grow } as CSSProperties}
+          className="pointer-events-none relative min-h-0 w-[min(calc(100%*var(--width)),100cqw)] max-w-none flex-(--grow) rounded-lg xl:w-[min(calc(var(--side-col)*var(--width)),calc(var(--side-free)-0.625rem))] [&_svg_*]:pointer-events-auto [&_svg_*]:cursor-pointer after:pointer-events-auto after:absolute after:left-1/2 after:top-1/2 after:size-11 after:-translate-x-1/2 after:-translate-y-1/2 after:cursor-pointer"
+        >
+          <PaintingFrame shape={shape} imageUrl={images[shape]} className="size-full" />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// La habitación de la página de inicio: bolsa | estantería | mesa, con dos cuadros sobre la bolsa y dos sobre la mesa.
+// La pizarra con el orden y el filtro por género de la estantería cuelga sobre los cuadros de la bolsa si hay alto de sobra
+// (ROOMY); si no, va detrás de la bolsa, asomando por la izquierda: un clic en la que está atrás la pasa al frente.
+// - Desde xl hay espacio a los lados: la bolsa y la mesa van junto a la estantería, apoyadas en el borde de abajo,
+//   y sus columnas ocupan todo el alto para colgar los cuadros encima.
+// - Por debajo de xl es un carrusel como el de fotos: se ve un panel a la vez y un gesto (dedo o arrastre con el mouse)
+//   pasa al siguiente de golpe. Con mouse también hay flechas a los lados, y con teclado, las flechas del teclado.
+// paintings: URL de la imagen de cada cuadro del usuario; los cuadros sin imagen muestran el lienzo vacío.
+// genres: los géneros de los libros del usuario, para filtrar la estantería.
+export function RoomScene({ children, paintings = {}, genres = [] }: { children: ReactNode; paintings?: PaintingImages; genres?: string[] }) {
+  const [index, setIndex] = useState(BOOKSHELF);
+  const [sort, setSort] = useState<ShelfSort>("custom");
+  const [chosenGenre, setGenre] = useState<string | null>(null);
+  // Si ya no queda ningún libro del género elegido, se ven todos.
+  const genre = chosenGenre !== null && genres.includes(chosenGenre) ? chosenGenre : null;
+  const [market, setMarket] = useState<FrameShape | null>(null);
+  // Libro que salió de la bolsa: abre la creación de un libro.
+  const [newBook, setNewBook] = useState<TakenBook | null>(null);
+  // Libro de la estantería que se está viendo.
+  const [viewing, setViewing] = useState<ViewedBook | null>(null);
+  const dragStart = useRef<number | null>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
+  // Sin esto, en Chrome para celular el primer toque después de deslizar no hace nada.
+  useHorizontalSwipe(stripRef);
+  // El último gesto fue un deslizamiento: el clic que lo sigue no debe abrir el mercado ni sacar un libro.
+  const swiped = useRef(false);
+  const wide = useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches, () => false);
+  const roomy = useSyncExternalStore(subscribeRoomy, () => window.matchMedia(ROOMY).matches, () => false);
+  // Cuál va adelante cuando la pizarra está detrás de la bolsa.
+  const [front, setFront] = useState<"bag" | "board">("bag");
+  // El bote de basura sale mientras se arrastra un libro: junto a la mesa desde xl; sobre la estantería en el carrusel.
+  const trashRef = useRef<HTMLDivElement>(null);
+  const [trashShown, setTrashShown] = useState(false);
+  const trashClasses = `pointer-events-none absolute z-40 origin-bottom transition duration-200 data-over:scale-115 motion-reduce:transition-none ${trashShown ? "opacity-100" : "scale-75 opacity-0"}`;
+  const boardRef = useRef<HTMLDivElement>(null);
+  const bagRef = useRef<HTMLDivElement>(null);
+  const shuffling = useRef(false);
+
+  // Como al barajar: la de atrás sale de detrás de la otra hacia su lado, cambian de capa y entra por encima a su lugar;
+  // la otra se corre un poco hacia el lado contrario y vuelve.
+  async function bringToFront(next: "bag" | "board") {
+    if (!canAnimate()) return setFront(next);
+    if (shuffling.current) return;
+    shuffling.current = true;
+    const other = next === "board" ? "bag" : "board";
+    const [incoming, outgoing] = next === "board" ? [boardRef.current!, bagRef.current!] : [bagRef.current!, boardRef.current!];
+    const out = { duration: 180, easing: "ease-in", fill: "forwards" } as const;
+    await Promise.all([
+      incoming.animate({ transform: ["none", PULLED[next]] }, out).finished,
+      outgoing.animate({ transform: ["none", NUDGED[other]] }, out).finished,
+    ]).catch(() => {});
+    flushSync(() => setFront(next));
+    for (const element of [incoming, outgoing]) element.getAnimations().forEach((animation) => animation.cancel());
+    const back = { duration: 220, easing: "ease-out" } as const;
+    incoming.animate({ transform: [PULLED[next], "none"] }, back);
+    outgoing.animate({ transform: [NUDGED[other], "none"] }, back);
+    shuffling.current = false;
+  }
+  const board = { sort, onSortChange: setSort, genre, onGenreChange: setGenre, genres };
+
+  const go = (next: number) => setIndex(Math.max(0, Math.min(PANELS.length - 1, next)));
+
+  // Al bajar de xl vuelve a mostrar la estantería.
+  useLayoutEffect(() => {
+    return subscribeWide(() => setIndex(BOOKSHELF));
+  }, []);
+
+  function onPointerDown(event: PointerEvent) {
+    dragStart.current = event.clientX;
+    swiped.current = false;
+  }
+
+  function onPointerUp(event: PointerEvent) {
+    if (dragStart.current === null) return;
+    const distance = event.clientX - dragStart.current;
+    dragStart.current = null;
+    if (Math.abs(distance) < SWIPE) return;
+    swiped.current = true;
+    go(index + (distance < 0 ? 1 : -1));
+  }
+
+  function onClickCapture(event: MouseEvent) {
+    if (!swiped.current) return;
+    swiped.current = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  function onKeyDown(event: KeyboardEvent) {
+    if (event.key === "ArrowLeft") go(index - 1);
+    if (event.key === "ArrowRight") go(index + 1);
+  }
+
+  return (
+    <OpenShelfBook value={setViewing}>
+      <div
+        role="region"
+        aria-roledescription="carrusel"
+        aria-label="Tu habitación. En pantallas pequeñas, desliza o usa las flechas para ver la bolsa y la mesa."
+        // Con teclado se puede enfocar y pasar de panel con las flechas.
+        tabIndex={0}
+        onKeyDown={onKeyDown}
+        // --side-gap: separación entre la estantería y la bolsa/mesa desde xl. 1rem hasta 1536 px y luego crece hasta 6rem.
+        // -mt-2 pt-2: el recorte deja 8 px de aire arriba (en pantallas muy bajas la estantería mínima es más alta).
+        // Entre 1280 y 1460 px la estantería mide el 80 % (la tira se angosta): el 10 % que libera a cada lado (6.4rem de los
+        // 64rem del contenido) se suma a --side-free para la bolsa, la mesa y los cuadros. Desde 1460 px vuelve al 100 %.
+        className="relative -mt-2 flex min-h-0 flex-1 overflow-x-clip pt-2 -outline-offset-4 [--side-gap:clamp(1rem,calc((100vw-96rem)/4+1rem),6rem)] [--side-free:calc((100vw-72rem)/2+3rem-var(--side-gap))] xl:[--side-free:calc((100vw-72rem)/2+9.4rem-var(--side-gap))] min-[91.25rem]:[--side-free:calc((100vw-72rem)/2+3rem-var(--side-gap))] [--side-col:min(13rem,var(--side-free))] xl:overflow-visible"
+      >
+        {/* Tira con los tres paneles. Se mueve un panel completo (más el espacio entre paneles, que evita que asome
+            el borde del vecino). touch-pan-y: el gesto horizontal lo manejan los eventos, no el navegador. */}
+        <div
+          ref={stripRef}
+          style={{ "--slide": index } as CSSProperties}
+          onPointerDown={onPointerDown}
+          onPointerUp={onPointerUp}
+          onPointerCancel={() => (dragStart.current = null)}
+          onClickCapture={onClickCapture}
+          onDragStart={(event) => event.preventDefault()}
+          className="relative flex min-h-0 w-full flex-1 touch-pan-y xl:mx-auto xl:max-w-[80%] min-[91.25rem]:max-w-none gap-8 select-none transition-transform duration-300 ease-out translate-x-[calc(var(--slide)*-1*(100%+2rem))] motion-reduce:transition-none xl:translate-x-0 xl:gap-0 xl:transition-none"
+        >
+          <div
+            inert={!wide && index !== 0}
+            className={`flex w-full shrink-0 flex-col items-center justify-end [container-type:size] xl:absolute xl:inset-y-0 xl:right-full xl:mr-(--side-gap) ${SIDE_WIDTH}`}
+          >
+            {roomy && <ShelfChalkboard {...board} className="w-full shrink-0" />}
+            <Paintings
+              frames={[
+                { shape: "oval", width: 1.1, grow: 1.1 },
+                { shape: "portrait", width: 1.9, grow: 3 },
+              ]}
+              side="left"
+              images={paintings}
+              onChoose={setMarket}
+            />
+            {roomy ? (
+              <PaperBag className={`w-full shrink-0 ${BAG_HOVER}`} taken={newBook !== null} onTakeBook={setNewBook} />
+            ) : (
+              // La pizarra detrás de la bolsa: mide lo mismo que la bolsa (si no le cabe el contenido, se desplaza adentro)
+              // y queda corrida PEEK a la izquierda. Así ocupan casi lo mismo que la bolsa sola y los cuadros no cambian.
+              // La bolsa ocupa a lo sumo la mitad del alto del panel (cqh), como antes, menos lo que asoma la pizarra.
+              <div className="relative shrink-0" style={{ paddingLeft: PEEK }}>
+                <ShelfChalkboard
+                  {...board}
+                  ref={boardRef}
+                  inert={front !== "board"}
+                  className={`absolute inset-y-0 left-0 ${front === "board" ? "z-30" : "z-0"}`}
+                  style={{ right: PEEK }}
+                />
+                {/* La que está atrás no se usa: un clic en lo que asoma de ella solo la pasa al frente. */}
+                {front === "bag" && (
+                  <button
+                    type="button"
+                    aria-label="Mostrar la pizarra para ordenar y filtrar la estantería"
+                    onClick={() => bringToFront("board")}
+                    className="absolute inset-y-0 left-0 z-10 cursor-pointer rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                    style={{ right: PEEK }}
+                  />
+                )}
+                {/* Solo el dibujo de la bolsa recibe el clic: lo transparente (entre las asas) deja pasar el clic a la pizarra. */}
+                <div ref={bagRef} inert={front !== "bag"} className={`pointer-events-none relative ${front === "bag" ? "z-20" : "z-0"}`}>
+                  <PaperBag
+                    className={`w-[min(16rem,calc(80cqw-2.75rem),50cqh)] [&_svg_*]:pointer-events-auto [@container(max-height:20rem)]:w-[min(16rem,calc(80cqw-2.75rem),111cqh)] xl:w-[calc(100cqw-2.75rem)] xl:[@container(max-height:20rem)]:w-[calc(100cqw-2.75rem)] ${BAG_HOVER}`}
+                    taken={newBook !== null}
+                    onTakeBook={setNewBook}
+                  />
+                </div>
+                {front === "board" && (
+                  <button
+                    type="button"
+                    aria-label="Mostrar la bolsa para agregar un libro"
+                    onClick={() => bringToFront("bag")}
+                    className="absolute inset-y-0 right-0 z-20 cursor-pointer rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                    style={{ left: PEEK }}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+          {/* Con mouse, margen a los lados para que las flechas (44 px) no tapen los postes ni los libros. */}
+          <div inert={!wide && index !== BOOKSHELF} className="relative flex w-full shrink-0 flex-col pointer-fine:px-12 xl:pointer-fine:px-0">
+            <BookTrash value={{ ref: trashRef, setShown: setTrashShown }}>
+              <ShelfView value={{ sort, genre }}>{children}</ShelfView>
+            </BookTrash>
+            {/* Apoyado sobre el tablón de arriba, en el espacio libre sobre la estantería o en el aire de la página: así no
+                tapa los libros del primer piso. */}
+            {!wide && <TrashCan ref={trashRef} className={`left-[calc(50%-1.75rem)] w-14 ${ABOVE_SHELF} ${trashClasses}`} />}
+          </div>
+          <div
+            inert={!wide && index !== 2}
+            className={`flex w-full shrink-0 flex-col items-center justify-end [container-type:size] xl:absolute xl:inset-y-0 xl:left-full xl:ml-(--side-gap) ${SIDE_WIDTH}`}
+          >
+            <Paintings
+              frames={[
+                { shape: "round", width: 1.9, grow: 3 },
+                { shape: "landscape", width: 1.2, grow: 1.29 },
+              ]}
+              side="right"
+              images={paintings}
+              onChoose={setMarket}
+            />
+            <SideTable className="w-[min(18rem,85%,48cqh)] shrink-0 xl:w-full [@container(max-height:20rem)]:w-[min(18rem,85%,107cqh)] xl:[@container(max-height:20rem)]:w-full" />
+            {/* A la derecha de la mesa, en el suelo, sin salirse de la pantalla (--side-free): donde no hay lugar, queda
+                delante del extremo de la mesa. */}
+            {wide && <TrashCan ref={trashRef} className={`bottom-0 left-[min(calc(100%+0.5rem),calc(var(--side-free)-6rem))] w-24 ${trashClasses}`} />}
+          </div>
+        </div>
+
+        {/* Flechas solo con mouse (pointer-fine) y por debajo de xl: en pantallas táctiles se desliza con el dedo. */}
+        {index > 0 && (
+          <button
+            type="button"
+            aria-label={`Ver ${PANELS[index - 1]}`}
+            onClick={() => go(index - 1)}
+            className="absolute left-0 top-1/2 hidden size-11 -translate-y-1/2 items-center justify-center rounded-full bg-card text-foreground shadow-md ring-1 ring-foreground/10 transition hover:bg-surface pointer-fine:flex xl:pointer-fine:hidden"
+          >
+            <ChevronLeft aria-hidden="true" className="size-6" />
+          </button>
+        )}
+        {index < PANELS.length - 1 && (
+          <button
+            type="button"
+            aria-label={`Ver ${PANELS[index + 1]}`}
+            onClick={() => go(index + 1)}
+            className="absolute right-0 top-1/2 hidden size-11 -translate-y-1/2 items-center justify-center rounded-full bg-card text-foreground shadow-md ring-1 ring-foreground/10 transition hover:bg-surface pointer-fine:flex xl:pointer-fine:hidden"
+          >
+            <ChevronRight aria-hidden="true" className="size-6" />
+          </button>
+        )}
+      </div>
+      {/* Fuera de la región: así las flechas del teclado dentro del modal no mueven el carrusel. */}
+      <PaintingMarket frame={market} current={paintings} onClose={() => setMarket(null)} />
+      {/* Al guardar el libro se muestra la estantería, adonde vuela el libro nuevo. */}
+      <BookCreator book={newBook} onClose={() => setNewBook(null)} onSaved={() => setIndex(BOOKSHELF)} />
+      <BookViewer viewing={viewing} onClose={() => setViewing(null)} />
+    </OpenShelfBook>
+  );
+}

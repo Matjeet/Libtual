@@ -1,0 +1,121 @@
+"use client";
+
+import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
+import { register, type RegisterState } from "@/app/registro/actions";
+import { Button } from "@/components/atoms/Button";
+import { Input } from "@/components/atoms/Input";
+import { CountrySelect } from "@/components/molecules/CountrySelect";
+import { DateField } from "@/components/molecules/DateField";
+import { FormField } from "@/components/molecules/FormField";
+import { PasswordRules } from "@/components/molecules/PasswordRules";
+import { validateAll, validateField, type Country, type RegisterField, type RegisterValues } from "@/lib/registration";
+
+type Flags = Partial<Record<RegisterField, boolean>>;
+
+const EMPTY: RegisterValues = { email: "", password: "", username: "", country: "", birthDate: "" };
+const ALL_TOUCHED: Flags = { email: true, password: true, username: true, country: true, birthDate: true };
+const TEXT_FIELDS = ["email", "password", "username", "birthDate"] as const;
+
+export function RegisterForm({ countries }: { countries: Country[] }) {
+  const [state, formAction, pending] = useActionState<RegisterState, FormData>(register, {});
+  const [values, setValues] = useState(EMPTY);
+  // Un campo muestra su error al salir de él (touched), no mientras se escribe.
+  const [touched, setTouched] = useState<Flags>({});
+  // Campos editados desde la última respuesta del servidor: su error de servidor (p. ej. usuario en uso) ya no aplica.
+  // Se guardan junto a la respuesta a la que corresponden, así se reinician solos cuando llega una respuesta nueva.
+  const [edited, setEdited] = useState<{ response: RegisterState; fields: Flags }>({ response: state, fields: {} });
+  const editedFields = edited.response === state ? edited.fields : {};
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Los inputs no son controlados: si el usuario escribió antes de hidratar, el texto sigue en el DOM y se recupera aquí.
+  useEffect(() => {
+    const data = new FormData(formRef.current!);
+    const typed = Object.fromEntries(TEXT_FIELDS.map((field) => [field, String(data.get(field) ?? "")]));
+    setValues((current) => ({ ...current, ...typed }));
+  }, []);
+
+  const country = countries.find((item) => item.code === values.country);
+  // Si la fecha se llena antes que el país, ya se avisa con la edad mínima de los países habilitados.
+  const validation = { country, minAdultAge: Math.min(...countries.map((item) => item.adultAge)) };
+  // Cubre campos vacíos (son obligatorios) y cualquier valor inválido, como una persona menor de edad.
+  const isValid = Object.keys(validateAll(values, validation)).length === 0;
+
+  // Mientras se envía, los errores del servidor son del intento anterior: no se muestran hasta tener la respuesta nueva.
+  const serverError = (field: RegisterField) => (pending || editedFields[field] ? undefined : state.fieldErrors?.[field]);
+  const errorFor = (field: RegisterField) => (touched[field] && validateField(field, values, validation)) || serverError(field);
+
+  const change = (field: RegisterField) => (value: string) => {
+    setValues((current) => ({ ...current, [field]: value }));
+    setEdited((current) => ({
+      response: state,
+      fields: { ...(current.response === state ? current.fields : {}), [field]: true },
+    }));
+  };
+  const touch = (field: RegisterField) => () => setTouched((current) => ({ ...current, [field]: true }));
+
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    // Defensa extra: con el botón deshabilitado no debería llegarse aquí con datos inválidos.
+    if (!isValid) return setTouched(ALL_TOUCHED);
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => formAction(formData));
+  }
+
+  if (state.message) {
+    return <p className="rounded-lg bg-surface p-4 text-surface-foreground" role="status">{state.message}</p>;
+  }
+
+  const errors = {
+    email: errorFor("email"),
+    // Dentro del campo, la lista de requisitos da el feedback en vivo; al salir, el error detalla lo que falta.
+    password: passwordFocused ? undefined : errorFor("password"),
+    username: errorFor("username"),
+    country: errorFor("country"),
+    birthDate: errorFor("birthDate"),
+  };
+
+  return (
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="flex w-full max-w-sm flex-col gap-2">
+      <FormField id="email" label="Correo electrónico" error={errors.email}>
+        <Input id="email" name="email" type="email" autoComplete="email" required
+          onChange={(event) => change("email")(event.target.value)} onBlur={touch("email")}
+          aria-invalid={Boolean(errors.email)} aria-describedby="email-error" />
+      </FormField>
+
+      <FormField id="password" label="Contraseña" error={errors.password}>
+        <Input id="password" name="password" type="password" autoComplete="new-password" required maxLength={20}
+          onChange={(event) => change("password")(event.target.value)}
+          onFocus={() => setPasswordFocused(true)}
+          onBlur={() => { setPasswordFocused(false); touch("password")(); }}
+          aria-invalid={Boolean(errors.password)} aria-describedby={passwordFocused ? "password-rules password-error" : "password-error"} />
+        {passwordFocused && <PasswordRules id="password-rules" password={values.password} />}
+      </FormField>
+
+      <FormField id="username" label="Nombre de usuario" error={errors.username}>
+        <Input id="username" name="username" autoComplete="username" required maxLength={20}
+          onChange={(event) => change("username")(event.target.value)} onBlur={touch("username")}
+          aria-invalid={Boolean(errors.username)} aria-describedby="username-error" />
+      </FormField>
+
+      <FormField id="country" label="País" error={errors.country}>
+        <CountrySelect id="country" name="country" countries={countries} value={values.country}
+          onChange={change("country")} onBlur={touch("country")}
+          invalid={Boolean(errors.country)} describedBy="country-error" />
+      </FormField>
+
+      <FormField id="birthDate" label="Fecha de nacimiento" error={errors.birthDate}>
+        <DateField id="birthDate" name="birthDate" required calendarLabel="Elegir fecha de nacimiento"
+          value={values.birthDate} onChange={change("birthDate")} onBlur={touch("birthDate")}
+          aria-invalid={Boolean(errors.birthDate)} aria-describedby="birthDate-error" />
+      </FormField>
+
+      {!pending && state.error && <p className="text-sm text-danger" role="alert">{state.error}</p>}
+
+      {/* Solo se habilita con todo lleno y válido; antes de hidratar (values vacíos) también queda deshabilitado. */}
+      <Button type="submit" disabled={!isValid || pending} className="mt-2">
+        {pending ? "Creando cuenta..." : "Crear cuenta"}
+      </Button>
+    </form>
+  );
+}
