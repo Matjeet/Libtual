@@ -4,8 +4,8 @@ import { RotatingText } from "./RotatingText";
 
 const PHRASES = ["Primera", "Segunda", "Tercera"];
 
-const stateOf = (container: HTMLElement, text: string) =>
-  [...container.querySelectorAll("[data-state]")].find((el) => el.textContent === text)!.getAttribute("data-state");
+const stateOf = (container: HTMLElement, phrase: string) =>
+  container.querySelector(`[data-phrase="${phrase}"]`)!.getAttribute("data-state");
 const visibleText = (container: HTMLElement) =>
   [...container.querySelectorAll("[aria-hidden='false']")].map((el) => el.textContent);
 
@@ -18,6 +18,8 @@ describe("RotatingText", () => {
     expect(stateOf(container, "Primera")).toBe("shown");
     expect(stateOf(container, "Segunda")).toBe("hidden");
     expect(visibleText(container)).toEqual(["Primera"]);
+    // Solo la frase actual es texto de la página; las otras se dibujan con CSS.
+    expect(container.textContent).toBe("Primera");
   });
 
   test("cambia cada 30 segundos: la anterior sale y la nueva entra", () => {

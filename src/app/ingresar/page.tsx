@@ -4,7 +4,10 @@ import { RotatingText } from "@/components/molecules/RotatingText";
 import { LoginForm } from "@/components/organisms/LoginForm";
 import { AuthTemplate } from "@/components/templates/AuthTemplate";
 
-export const metadata: Metadata = { title: "Ingresar | Libtual" };
+export const metadata: Metadata = {
+  title: "Ingresar",
+  description: "Ingresa a tu cuenta de Libtual para ver tu estantería, ordenar tus libros y seguir armando tu librería virtual de lecturas.",
+};
 
 const LOGIN_PHRASES = [
   "Ingresa para llenar tu librería con tus libros favoritos",

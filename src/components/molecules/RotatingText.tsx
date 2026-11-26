@@ -14,6 +14,8 @@ type RotatingTextProps = {
 
 // Muestra una frase a la vez y la cambia cada `intervalMs`: la actual sale hacia arriba y la nueva entra desde abajo.
 // Todas las frases ocupan la misma celda del grid, así el alto reservado es el de la más larga y nada salta al cambiar.
+// Solo la frase actual es texto de la página; las demás se dibujan con CSS (content: attr(data-phrase)): así los
+// buscadores y quien copie el texto leen una sola frase (por ejemplo, "Bienvenido" y no "Bienvenidoa").
 export function RotatingText({ phrases, intervalMs = 30_000, animationMs = 600, inline = false }: RotatingTextProps) {
   // previous es null en la primera frase: se muestra sin animación de entrada.
   const [{ index, previous }, setRotation] = useState<{ index: number; previous: number | null }>({ index: 0, previous: null });
@@ -36,8 +38,9 @@ export function RotatingText({ phrases, intervalMs = 30_000, animationMs = 600, 
           <span
             key={phrase}
             data-state={state}
+            data-phrase={phrase}
             aria-hidden={i !== index}
-            className={`col-start-1 row-start-1 ${
+            className={`col-start-1 row-start-1 ${i === index ? "" : "before:content-[attr(data-phrase)]"} ${
               state === "entering"
                 ? "animate-[phrase-in_var(--rotate-ms)_ease-out_both] motion-reduce:animate-none"
                 : state === "leaving"
@@ -47,7 +50,7 @@ export function RotatingText({ phrases, intervalMs = 30_000, animationMs = 600, 
                     : ""
             }`}
           >
-            {phrase}
+            {i === index ? phrase : null}
           </span>
         );
       })}

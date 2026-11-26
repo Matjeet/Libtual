@@ -14,9 +14,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Lo de la portada; cada página define su título (se completa con "| Libtual") y su descripción.
 export const metadata: Metadata = {
-  title: "Libtual",
-  description: "Libtual",
+  title: { default: "Libtual: tu librería virtual de libros leídos y por leer", template: "%s | Libtual" },
+  description: "Libtual es tu librería virtual: guarda los libros que leíste, los que estás leyendo y los que quieres leer, y comparte tu opinión con otros lectores.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
