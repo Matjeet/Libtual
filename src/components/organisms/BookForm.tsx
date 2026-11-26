@@ -194,7 +194,7 @@ export function BookForm(props: BookFormProps) {
                 style={{ fontFamily: fontFamily(titleFont) }}
               />
             </Field>
-            <Field label="Fuente de la descripción" className={LIST_FIELD} htmlFor={`${fieldId}-comment-font`}>
+            <Field label="Fuente del comentario" className={LIST_FIELD} htmlFor={`${fieldId}-comment-font`}>
               <Combobox
                 id={`${fieldId}-comment-font`}
                 name="comment_font"
