@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/seo";
 
 // /robots.txt para los buscadores: pueden recorrer las páginas públicas (inicio, ingresar y registro), pero no /inicio,
 // la habitación privada de cada usuario (sin sesión redirige a /ingresar y no tiene nada que indexar).
-// shortcut: sin la línea Sitemap, porque todavía no hay sitemap ni dominio de producción; agregarla junto con el sitemap.
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
@@ -10,5 +10,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: "/inicio",
     },
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { InlineScript } from "@/components/atoms/InlineScript";
+import { HOME_DESCRIPTION, HOME_TITLE, SITE_URL } from "@/lib/seo";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -14,10 +15,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Lo de la portada; cada página define su título (se completa con "| Libtual") y su descripción.
+// metadataBase: las URL relativas (canonical, Open Graph) se completan con la del sitio. El título y la descripción
+// son los de la portada; cada página pública define los suyos con pageMetadata (el título se completa con "| Libtual").
 export const metadata: Metadata = {
-  title: { default: "Libtual: tu librería virtual de libros leídos y por leer", template: "%s | Libtual" },
-  description: "Libtual es tu librería virtual: guarda los libros que leíste, los que estás leyendo y los que quieres leer, y comparte tu opinión con otros lectores.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: HOME_TITLE, template: "%s | Libtual" },
+  description: HOME_DESCRIPTION,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

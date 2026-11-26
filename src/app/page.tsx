@@ -1,8 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { buttonClasses } from "@/components/atoms/Button";
 import { RotatingText } from "@/components/molecules/RotatingText";
 import { BrandPanel } from "@/components/organisms/BrandPanel";
 import { MainTemplate } from "@/components/templates/MainTemplate";
+import { HOME_DESCRIPTION, pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({ description: HOME_DESCRIPTION, path: "/" });
 
 export default function Home() {
   return (
