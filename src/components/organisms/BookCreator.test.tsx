@@ -94,7 +94,7 @@ describe("BookCreator", () => {
     const user = userEvent.setup();
     render(<BookCreator book={BOOK} onClose={() => {}} />);
     const titleFont = screen.getByRole("combobox", { name: "Fuente del título" });
-    const commentFont = screen.getByRole("combobox", { name: "Fuente de la descripción" });
+    const commentFont = screen.getByRole("combobox", { name: "Fuente del comentario" });
     // Abre la lista de un campo y devuelve sus grupos y opciones; Escape la cierra.
     const open = async (field: HTMLElement) => {
       await user.click(field);
