@@ -4,12 +4,14 @@ import { RegisterForm } from "@/components/organisms/RegisterForm";
 import { RegisterFormSkeleton } from "@/components/organisms/RegisterFormSkeleton";
 import { AuthTemplate } from "@/components/templates/AuthTemplate";
 import type { Country } from "@/lib/registration";
+import { pageMetadata } from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Registro",
   description: "Crea tu cuenta en Libtual y arma tu librería virtual: guarda tus libros, marca qué estás leyendo y comparte tu opinión con otros lectores.",
-};
+  path: "/registro",
+});
 
 export default function RegisterPage() {
   return (

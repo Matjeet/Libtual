@@ -3,11 +3,13 @@ import Link from "next/link";
 import { RotatingText } from "@/components/molecules/RotatingText";
 import { LoginForm } from "@/components/organisms/LoginForm";
 import { AuthTemplate } from "@/components/templates/AuthTemplate";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Ingresar",
   description: "Ingresa a tu cuenta de Libtual para ver tu estantería, ordenar tus libros y seguir armando tu librería virtual de lecturas.",
-};
+  path: "/ingresar",
+});
 
 const LOGIN_PHRASES = [
   "Ingresa para llenar tu librería con tus libros favoritos",
